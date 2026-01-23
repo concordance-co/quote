@@ -221,4 +221,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Documentation**: [docs.concordance.co](https://docs.concordance.co)
 
-**Issues**: [GitHub Issues](https://github.com/concordance-co/concordance-v1/issues)
+**Issues**: [GitHub Issues](https://github.com/concordance-co/quote/issues)

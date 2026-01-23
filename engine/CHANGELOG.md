@@ -51,5 +51,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration with Modular MAX Engine
 - Support for Modal deployment (remote inference)
 
-[Unreleased]: https://github.com/concordance-co/concordance-v1/compare/v0.4.3...HEAD
-[0.4.3]: https://github.com/concordance-co/concordance-v1/releases/tag/v0.4.3
+[Unreleased]: https://github.com/concordance-co/quote/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/concordance-co/quote/releases/tag/v0.4.3

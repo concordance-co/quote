@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/concordance-co/concordance-v1.git",
+    "url": "https://github.com/concordance-co/quote.git",
     "directory": "frontend"
   },
   "homepage": "https://concordance.co",
   "bugs": {
-    "url": "https://github.com/concordance-co/concordance-v1/issues"
+    "url": "https://github.com/concordance-co/quote/issues"
   },
   "keywords": [
     "llm",

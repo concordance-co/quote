@@ -29,8 +29,8 @@ Quote is an inference engine that enables fine-grained control over LLM text gen
 
 ```bash
 # Clone the repository
-git clone https://github.com/concordance-co/concordance-v1.git
-cd concordance-v1/engine
+git clone https://github.com/concordance-co/quote.git
+cd quote/engine
 
 # Install dependencies
 uv sync

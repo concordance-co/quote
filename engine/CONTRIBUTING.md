@@ -31,8 +31,8 @@ This project adheres to a Code of Conduct that all contributors are expected to 
 1. **Fork and clone the repository**
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/concordance-v1.git
-   cd concordance-v1/engine
+   git clone https://github.com/YOUR_USERNAME/quote.git
+   cd quote/engine
    ```
 
 2. **Install dependencies**
@@ -61,7 +61,7 @@ This project adheres to a Code of Conduct that all contributors are expected to 
 
 Before submitting a bug report:
 
-1. Check the [existing issues](https://github.com/concordance-co/concordance-v1/issues) to avoid duplicates
+1. Check the [existing issues](https://github.com/concordance-co/quote/issues) to avoid duplicates
 2. Ensure you're using the latest version
 3. Collect relevant information (Python version, OS, error messages, logs)
 
