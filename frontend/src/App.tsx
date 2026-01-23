@@ -6,7 +6,7 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
-import { ExternalLink, Key, Sparkles, Star } from "lucide-react";
+import { ExternalLink, Key, Sparkles } from "lucide-react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import CollectionsSidebar, {
 } from "@/components/CollectionsSidebar";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { LoginModal, UserMenu } from "@/components/LoginModal";
+import { GitHubStarButton } from "@/components/GitHubStarButton";
 
 const FILTER_STORAGE_KEY = "concordance_last_filter";
 
@@ -288,22 +289,7 @@ function AppContent() {
                 <ExternalLink className="h-3 w-3" />
               </a>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="https://github.com/concordance-co/quote"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                <Star className="h-3 w-3" />
-                GitHub
-              </a>
-            </Button>
+            <GitHubStarButton />
           </div>
 
           {/* API & User Menu */}
@@ -464,22 +450,7 @@ function PlaygroundPage() {
                 <ExternalLink className="h-3 w-3" />
               </a>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="https://github.com/concordance-co/quote"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                <Star className="h-3 w-3" />
-                GitHub
-              </a>
-            </Button>
+            <GitHubStarButton />
           </div>
 
           {/* API & User Menu */}
