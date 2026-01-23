@@ -192,4 +192,4 @@ Contributions are welcome! Please:
 
 ## License
 
-[Add your license here]
+MIT

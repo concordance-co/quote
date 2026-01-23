@@ -228,7 +228,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ## License
 
-This project is licensed under [TBD]. See [LICENSE](LICENSE) for details.
+This project is licensed under MIT. See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
