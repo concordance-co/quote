@@ -1,0 +1,144 @@
+# Self Prompting
+
+Self-prompting injects a short, internal prompt and then deterministically constrains the model’s next-token choices using a strategy. It’s a single-question controller that (a) writes the prompt, (b) gates logits according to a compiled strategy, and (c) signals completion and optional cleanup.
+
+## Concept
+
+- Prompt: text or tokens prepended to the stream to “ask yourself a question”.
+- Strategy: a compiled constraint (e.g., `ChoicesStrat`, `UntilStrat`, `CharsStrat`, `ListStrat`) that provides allowed/disallowed token sets per step.
+- Controller: maintains per-request state, produces actions (`ForceTokens`, `AdjustedLogits`, `Backtrack`), and exposes the answer tokens.
+
+## Lifecycle
+
+Given a `SelfPrompt(prompt, strategy, ...)` instance:
+
+- Prefilled
+  - Compile strategy with the runtime tokenizer.
+  - Tokenize prompt; reset state (`prompt_emitted=false`, `outstanding_forced=0`, `completed=false`).
+
+- ForwardPass
+  - If a backtrack was scheduled on completion, emit it now and mark complete.
+  - If prompt not emitted yet: emit `ForceTokens(prompt_tokens)` and set `outstanding_forced`.
+  - If still flushing forced tokens: `noop` until `Added(forced=True)` decrements the counter.
+  - If a completion suffix is pending: emit `ForceTokens(suffix_tokens)` (optional).
+  - Otherwise, compute `allowed/disallowed` sets from the strategy and emit `AdjustedLogits(masked_logits)`; optionally set `token_temp=0` for argmax sampling.
+
+- Added
+  - If tokens were forced: decrement `outstanding_forced`; do not mutate answer state.
+  - Else: `strategy.step(token)`, append token to `answer_tokens`.
+  - When `strategy.is_complete` becomes true:
+    - Optionally stage a completion suffix (e.g., a newline) if not handled by the strategy.
+    - If erase mode is active, schedule a `Backtrack` to run on the next `ForwardPass`.
+    - Otherwise, mark `completed=true` and continue with `noop`.
+
+## State Model (per request)
+
+- `compiled`: compiled strategy instance
+- `strat_state`: runtime state object from `strategy.start(...)`
+- `prompt_tokens`: tokenized prompt
+- `prompt_emitted`: whether we have forced the prompt
+- `outstanding_forced`: how many forced tokens we’re still consuming
+- `completed`: whether the self-prompt has finished
+- `answer_tokens`: collected non-forced tokens emitted while strategy ran
+- `suffix_tokens` / `suffix_pending`: optional completion suffix bookkeeping
+- `backtrack_n` / `backtrack_reinject` / `backtrack_scheduled`: erase scheduling
+
+## Logit Masking
+
+On each `ForwardPass` (after the prompt is flushed and no suffix is pending):
+
+- Ask the strategy for `allowed` and `disallowed` sets.
+- If both empty: `noop` (no constraints that step).
+- Else build a masked logits tensor by applying `mask_value` (default `-1e9`):
+  - If `allowed` is non-empty: mask everything except `allowed` (and also apply any explicit `disallowed`).
+  - If `allowed` is empty but `disallowed` is non-empty: mask just `disallowed`.
+- Emit `AdjustedLogits(masked, token_temp=0.0)` for argmax, or omit `token_temp` to keep normal sampling.
+
+## Completion & Erase
+
+When the strategy completes:
+
+- Completion suffix
+  - If the strategy did not already append a terminator and a suffix is configured, stage `suffix_tokens` so the next `ForwardPass` can force them.
+  - If using `ListStrat(end_with=...)`, the strategy consumes the suffix; avoid double-inserting a suffix in that case.
+
+- Erase modes
+  - `NONE`: keep prompt and answer in the output.
+  - `PROMPT`: remove just the prompt and reinject the answer tokens.
+  - `ALL`: remove both prompt and answer (useful for “classify then hide”).
+
+Erase is implemented by scheduling a `Backtrack(n, reinject?)` for the next `ForwardPass` where `n = len(prompt_tokens) + len(answer_tokens) + len(suffix_tokens)` and `reinject` is `answer_tokens` when mode is `PROMPT`, otherwise `None`.
+
+## Dynamic Choices
+
+For `ChoicesStrat` (and `ListStrat` containing `ChoicesStrat` elements) the available responses can be updated on the fly:
+
+```python
+# Update a flat choices strategy
+sp.refresh_responses(["Yes", "No"], request_id)
+
+# Update a nested list’s element choices by index
+sp.refresh_responses(["A", "B", "C"], request_id=request_id, idx=0)
+```
+
+When responses change, the compiled state for that request is cleared and recompiled on the next event.
+
+## API Summary
+
+- `handle_prefilled(event, tokenizer) -> None`
+- `handle_forward_pass(event, actions, tokenizer) -> ModAction`
+- `handle_added(event, actions, tokenizer) -> None`
+- `is_complete(request_id) -> bool`
+- `answer_tokens(request_id) -> list[int] | None`
+- `refresh_responses(responses, request_id?, idx?) -> None`
+
+## Usage Examples
+
+### Classification
+
+```python
+from quote_mod_sdk.self_prompt import SelfPrompt, EraseMode
+from quote_mod_sdk.strategies.strategy_constructor import ChoicesStrat
+
+sp = SelfPrompt(
+  prompt={"text": " Choose: yes/no "},
+  strategy=ChoicesStrat(["yes", "no"]),
+  erase=EraseMode.ALL,  # hide prompt + answer after decision
+)
+
+# In your mod: route Prefilled/ForwardPass/Added to sp.*
+# When sp.is_complete(req): decode sp.answer_tokens(req) to get the answer
+```
+
+### Extract Until Tag
+
+```python
+from quote_mod_sdk.self_prompt import SelfPrompt
+from quote_mod_sdk.strategies.strategy_constructor import UntilStrat
+from quote_mod_sdk.strategies.primitives import UntilEndType
+
+sp = SelfPrompt(
+  prompt={"text": " Wrap in <answer>...</answer> and stop: "},
+  strategy=UntilStrat("<answer>", UntilEndType.TAG, "</answer>"),
+)
+
+# After completion, strip tags from decoded answer if desired
+```
+
+### List of Choices with Terminator
+
+```python
+from quote_mod_sdk.self_prompt import SelfPrompt
+from quote_mod_sdk.strategies.strategy_constructor import ListStrat, ChoicesStrat
+
+sp = SelfPrompt(
+  prompt={"text": " Pick up to 3 colors: "},
+  strategy=ListStrat(
+    elements=ChoicesStrat(["red", "green", "blue"]),
+    open="[", close="]", sep=", ", wrap='"', end_with="\n",
+    min=1, max=3,
+  ),
+)
+```
+
+See the Strategies page for supported types and configuration details.

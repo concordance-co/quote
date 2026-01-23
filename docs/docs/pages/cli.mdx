@@ -1,0 +1,116 @@
+# CLI (concai)
+
+Command-line companion to install the engine, bootstrap the SDK, run the local server, and upload mods.
+
+## Install
+
+```bash
+cargo install concai
+# or from the repo
+cargo run -- <command>
+```
+
+Requirements:
+- `uv` on PATH (virtualenv + pip driver)
+  - macOS: `brew install uv`
+  - Linux/macOS: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+  - Windows: `winget install astral-sh.uv`
+
+## Quickstart
+
+After adding your custom inference endpoint to `.env`:
+
+```bash
+# 1) Initialize project (SDK + shared + .env + starter mod)
+concai init
+
+# 2) Upload a mod (single file or directory)
+concai mod upload --file-name mods/hello_world.py --url <url> --user-api-key <your_key>
+# or
+concai mod upload --dir mods/my_project --url <url> --user-api-key <your_key>
+```
+
+## Commands
+
+### version
+
+Print CLI version and embedded release metadata as JSON.
+
+```bash
+concai version
+```
+
+Output fields:
+- `cli_version` — version of the concai binary
+- `versions` — parsed `versions.toml` content used for installs
+
+### init
+
+Install Shared + SDK wheels into the managed engine venv, scaffold `.env`, and write a starter mod.
+
+```bash
+concai init [--env-file <path>] [-F|--force]
+```
+
+- `--env-file` (default `.env`) — where to write environment variables
+- `-F, --force` — overwrite existing files
+
+Behavior:
+- Ensures engine virtualenv exists (creates `./.venv` via `uv venv` if missing)
+- Installs Shared and SDK from `versions.toml` (`shared.wheel_url`, `sdk.wheel_url`)
+- Writes `.env`:
+  - `CONCAI_MODEL_ID=modularai/Llama-3.1-8B-Instruct-GGUF`
+  - `HF_TOKEN=` (empty; set this for gated model downloads)
+  - `HF_HUB_VERBOSITY=info`
+- Writes `mods/hello_world.py` with a minimal `@mod` example
+
+If both `.env` and starter mod already exist (and `--force` not set), exits with an instructional message.
+
+
+
+### mod upload
+
+Upload one or more `@mod` entrypoints to a running server.
+
+```bash
+# Single file mode
+concai mod upload --file-name <path> --url <url>
+
+# Directory mode (bundles sources)
+concai mod upload --dir <path> --url <url>
+```
+
+Flags:
+- `--url` — server base; `/v1/mods` is appended if not present
+- `--user-api-key` — attaches your user API key to the upload payload (required by remote servers)
+- `--file-name` — a single Python file; auto-resolves under `mods/` and with `.py`
+- `--dir` — bundle a project; detects a unique `mod.py` as the entry module
+
+Behavior:
+- Detects `@mod`-decorated functions as entrypoints
+- Single-file mode:
+  - Payload: `{ language: "python", module: "client_mod", entrypoint: <fn>, source: <file text> }`
+- Directory mode:
+  - Finds exactly one `mod.py` under `--dir` (recursively if needed)
+  - Derives the `module` import path from its location (relative to project root)
+  - Bundles all `.py` files under `--dir` into a source map keyed by relative path
+  - Payload: `{ language: "python", module: <derived>, entrypoint: <fn>, source: {"path.py": "..."} }`
+- POSTs each entrypoint to `<url>/v1/mods` (remote servers require `--user-api-key`)
+- Prints a summary, showing "Registered mods: ..." and how to enable: `your_model/<mod_name>`
+
+Errors:
+- Multiple `mod.py` files in `--dir` → ask for a narrower directory
+- No `@mod` entrypoints found → exits with an error
+- Partial success prints failures and still lists successful registrations
+
+## Versions & Configuration
+
+- The CLI reads build/install metadata from `versions.toml`
+- Advanced: point the CLI at a different `versions.toml` by setting `CONCORD_VERSIONS_PATH` before building or running
+
+## Tips
+
+- Ensure `uv` is installed and on PATH
+- Set `HF_TOKEN` in `.env` to enable gated model downloads
+- Use `--force` to overwrite `.env` and the starter mod when re-initializing
+- If the server fails to start, check the printed `uv run ...` command and the environment variables it used

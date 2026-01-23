@@ -1,0 +1,374 @@
+// ============================================================================
+// Mod Event and Action Logging Schema - DBML
+// ============================================================================
+// Use with dbdiagram.io to visualize the schema
+// 
+// Quick start:
+// 1. Go to https://dbdiagram.io/
+// 2. Copy this entire file
+// 3. Paste into the editor
+// 4. View the generated diagram
+// ============================================================================
+
+Project mod_logging {
+  database_type: 'PostgreSQL'
+  Note: '''
+    # Mod Event and Action Logging Schema
+    
+    Comprehensive logging for Concordance mod system:
+    - Track all events (Prefilled, ForwardPass, Added, Sampled)
+    - Record mod invocations and performance
+    - Capture all actions and their details
+    - Store mod logs for debugging
+    
+    Designed for high-throughput writes and efficient analytics.
+  '''
+}
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+
+Enum event_type {
+  Prefilled
+  ForwardPass
+  Added
+  Sampled
+}
+
+Enum action_type {
+  Noop
+  AdjustedPrefill
+  ForceTokens
+  ForceOutput
+  Backtrack
+  AdjustedLogits
+  ToolCalls
+  EmitError
+}
+
+Enum log_level {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+}
+
+// ============================================================================
+// Core Tables
+// ============================================================================
+
+Table requests {
+  id bigserial [pk, increment]
+  request_id varchar(255) [unique, not null, note: 'Unique request identifier']
+  created_at timestamptz [not null, default: `now()`, note: 'Request start time']
+  completed_at timestamptz [note: 'Request completion time']
+  
+  // Request context
+  model varchar(255) [note: 'Model being used']
+  user_api_key varchar(255) [note: 'User API key for tracking']
+  max_tokens int [note: 'Maximum tokens to generate']
+  temperature float [note: 'Sampling temperature']
+  
+  mod text
+  
+  indexes {
+    request_id
+    created_at [name: 'idx_requests_created_at']
+    user_api_key
+  }
+  
+  Note: 'Top-level tracking of each inference request'
+}
+
+Table events {
+  id bigserial [pk, increment]
+  request_id varchar(255) [ref: > requests.request_id, not null]
+  event_type event_type [not null, note: 'Type of mod event']
+  step int [not null, note: 'Generation step number']
+  sequence_order int [not null, note: 'Order within request for replay']
+  created_at timestamptz [not null, default: `now()`]
+  
+  // Full event details
+  details jsonb [note: 'Complete event details']
+  
+  // Prefilled event fields
+  prompt_length int [note: 'Length of initial prompt (Prefilled only)']
+  tokens_so_far_len int [note: 'Current token count']
+  max_steps int [note: 'Maximum generation steps']
+  
+  // ForwardPass event fields
+  input_text text [note: 'Last 70 chars of input for debugging']
+  top_tokens jsonb [note: 'Top 3 tokens with probabilities [{token, prob}, ...]']
+  
+  // Sampled event fields
+  sampled_token int [note: 'Token ID that was sampled']
+  token_text varchar(100) [note: 'Decoded token text']
+  
+  // Added event fields
+  added_tokens int[] [note: 'Array of added token IDs']
+  added_token_count int [note: 'Number of tokens added']
+  forced boolean [note: 'Whether tokens were forced']
+  
+  indexes {
+    request_id
+    event_type
+    created_at [name: 'idx_events_created_at']
+    (request_id, step) [name: 'idx_events_request_step']
+    (request_id, sequence_order) [name: 'idx_events_request_sequence']
+  }
+  
+  Note: '''
+    Core mod events that flow through the system.
+    Each event type has specific fields relevant to that event.
+  '''
+}
+
+Table mod_calls {
+  id bigserial [pk, increment]
+  event_id bigint [ref: > events.id, not null]
+  request_id varchar(255) [ref: > requests.request_id, not null]
+  
+  // Mod identification
+  mod_name varchar(255) [not null, note: 'Name of the mod being called']
+  event_type event_type [not null, note: 'Event type that triggered this mod']
+  step int [not null, note: 'Generation step']
+  
+  // Timing
+  created_at timestamptz [not null, default: `now()`]
+  execution_time_ms float [note: 'Time spent executing this mod in milliseconds']
+  
+  // Error tracking
+  exception_occurred boolean [default: false, note: 'Whether mod threw exception']
+  exception_message text [note: 'Exception message if error occurred']
+  exception_traceback text [note: 'Full exception traceback']
+  
+  indexes {
+    event_id
+    request_id
+    mod_name
+    created_at [name: 'idx_mod_calls_created_at']
+    exception_occurred [name: 'idx_mod_calls_exception', note: 'Partial index: WHERE exception_occurred = TRUE']
+  }
+  
+  Note: '''
+    Tracks every mod invocation for each event.
+    Captures performance and error information.
+    
+    Note: idx_mod_calls_exception is a partial index on exception_occurred
+    where exception_occurred = TRUE (created in SQL but shown as regular index here)
+  '''
+}
+
+Table mod_logs {
+  id bigserial [pk, increment]
+  mod_call_id bigint [ref: > mod_calls.id, not null]
+  request_id varchar(255) [ref: > requests.request_id, not null]
+  mod_name varchar(255) [not null]
+  
+  // Log content
+  log_message text [not null, note: 'Full log message from mod']
+  log_level log_level [default: 'INFO', note: 'Log severity level']
+  
+  created_at timestamptz [not null, default: `now()`]
+  
+  indexes {
+    mod_call_id
+    request_id
+    mod_name
+    created_at [name: 'idx_mod_logs_created_at']
+    log_level
+  }
+  
+  Note: '''
+    Captures all output from mods (print statements, logs).
+    Essential for debugging mod logic.
+  '''
+}
+
+Table actions {
+  id bigserial [pk, increment]
+  mod_call_id bigint [ref: > mod_calls.id, not null]
+  request_id varchar(255) [ref: > requests.request_id, not null]
+  action_type action_type [not null, note: 'Type of action returned by mod']
+  action_order int [not null, note: 'Order if multiple actions from same mod']
+  
+  created_at timestamptz [not null, default: `now()`]
+  
+  // Full action details
+  details jsonb [note: 'Complete action details']
+  
+  // AdjustedPrefill fields
+  new_prompt text [note: 'Can be null -- new prompt if changed']
+  new_length int [note: 'New prompt length (AdjustedPrefill)']
+  adjusted_max_steps int [note: 'Adjusted max steps (AdjustedPrefill)']
+  
+  // ForceTokens / ForceOutput fields
+  token_count int [note: 'Number of forced tokens']
+  tokens_preview text [note: 'First 10 tokens as string for readability']
+  
+  // Backtrack fields
+  backtrack_steps int [note: 'Number of steps to backtrack']
+  backtrack_token_count int [note: 'Number of replacement tokens']
+  
+  // AdjustedLogits fields
+  logits_shape varchar(100) [note: 'Shape of logits tensor']
+  temperature float [note: 'Temperature override']
+  
+  // ToolCalls fields
+  has_tool_calls boolean [note: 'Whether tool calls are present']
+  tool_calls jsonb [note: 'Full tool call payload']
+  
+  // EmitError fields
+  error_message text [note: 'Error message for EmitError action']
+  
+  indexes {
+    mod_call_id
+    request_id
+    action_type
+    created_at [name: 'idx_actions_created_at']
+    action_type [name: 'idx_actions_non_noop', note: 'Partial index: WHERE action_type != Noop']
+  }
+  
+  Note: '''
+    Records all actions returned by mods.
+    Different action types have different relevant fields.
+    
+    Note: idx_actions_non_noop is a partial index on action_type
+    where action_type != 'Noop' (created in SQL but shown as regular index here)
+  '''
+}
+
+// ============================================================================
+// Table Groups (for visual organization)
+// ============================================================================
+
+TableGroup "Core Request Tracking" {
+  requests
+  events
+}
+
+TableGroup "Mod Execution" {
+  mod_calls
+  mod_logs
+  actions
+}
+
+// ============================================================================
+// Notes on Relationships
+// ============================================================================
+
+Note relationships {
+  '''
+  # Key Relationships
+  
+  ## Primary Flow
+  1. requests (1) → events (N)
+  2. events (1) → mod_calls (N) - One per mod
+  3. mod_calls (1) → actions (N) - Typically 1
+  4. mod_calls (1) → mod_logs (N) - 0 to many
+  
+  ## Direct Links
+  - All tables link to request_id for easy filtering
+  - This enables fast queries like "get all events for request X"
+  
+  ## Cascade Deletes
+  - Deleting a request cascades to all related data
+  - This maintains referential integrity
+  
+  ## Indexes
+  - Foreign keys are indexed for join performance
+  - Time-based indexes support time-series queries
+  - Composite indexes support common query patterns
+  - Partial indexes (see SQL file) reduce index size for specific queries
+  '''
+}
+
+// ============================================================================
+// Partial Indexes Note
+// ============================================================================
+
+Note partial_indexes {
+  '''
+  # Partial Indexes (PostgreSQL only)
+  
+  The following partial indexes are defined in the SQL but shown
+  as regular indexes in this diagram (DBML limitation):
+  
+  ## mod_calls.idx_mod_calls_exception
+  CREATE INDEX idx_mod_calls_exception ON mod_calls(exception_occurred)
+  WHERE exception_occurred = TRUE;
+  
+  Only indexes rows where exceptions occurred, saving space.
+  
+  ## actions.idx_actions_non_noop
+  CREATE INDEX idx_actions_non_noop ON actions(action_type)
+  WHERE action_type != 'Noop';
+  
+  Only indexes non-Noop actions for faster queries on meaningful actions.
+  '''
+}
+
+// ============================================================================
+// Analytics Views (documented as comments since DBML doesn't support views)
+// ============================================================================
+
+Note analytics_views {
+  '''
+  # Analytics Views
+  
+  ## request_summary
+  Aggregates statistics per request:
+  - Total events by type
+  - Total mod calls and actions
+  - Execution time totals
+  - Exception counts
+  
+  ## mod_performance
+  Performance metrics per mod:
+  - Average execution time
+  - Percentiles (p50, p95, p99)
+  - Exception rates
+  
+  ## action_distribution
+  Distribution of action types across all requests
+  
+  ## event_flow
+  Event sequences grouped by request and step
+  
+  See mod_logging_schema.sql for full view definitions.
+  '''
+}
+
+// ============================================================================
+// Common Query Patterns
+// ============================================================================
+
+Note common_queries {
+  '''
+  # Common Query Patterns
+  
+  ## Full Trace
+  Get complete trace for a request by joining all tables
+  Filter by request_id, order by sequence
+  
+  ## Performance Analysis
+  Identify slow mods by analyzing execution_time_ms
+  Use percentile functions for outlier detection
+  
+  ## Error Tracking
+  Find all exceptions with partial index
+  Group by mod_name and exception_message
+  
+  ## Action Analysis
+  Find requests with specific actions
+  Analyze action frequency by mod
+  Track non-Noop actions separately
+  
+  ## Token Statistics
+  Aggregate token counts over time
+  Track average prompt lengths
+  Monitor token generation patterns
+  '''
+}

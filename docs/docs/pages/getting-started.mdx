@@ -1,0 +1,121 @@
+# Getting Started
+
+## Intro
+Concordance is a modified inference engine that allows you to ergonomically build inference-time interventions for LLMs.
+
+The SDK is built around *Events*, *Actions*, *Mods*, and *Flows*. *Events* are emitted at important steps in the inference process (Prefill, ForwardPass, Sampled, and Added). *Actions* are responses that can steer the inference process after each *Event*. The *Actions* are AdjustPrefill, ForceTokens, AdjustLogits, ForceOutput, ForceToolCalls, and Backtrack. *Mods* are modules that ingest *Events* and return *Actions*. *Mods* can hold arbitrary state and be strung together with *Flows* to create complex inference-time steering.
+
+Spin up the SDK, upload a mod, and call it — then explore progressively more powerful patterns using the examples repository.
+
+## Prerequisites
+
+- Rust and Cargo (for the CLI)
+- uv on PATH
+  - macOS: `brew install uv`
+  - Linux/macOS: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+  - Windows: `winget install astral-sh.uv`
+- Optional: `HF_TOKEN` (set in `.env`) for gated model downloads
+
+## 1) Install the CLI
+
+```bash
+cargo install concai
+```
+
+See the full CLI reference under /cli.
+
+## 2) Initialize a project
+
+```bash
+# in your project directory
+concai init
+```
+
+What this does:
+- Creates `./.venv` (if missing)
+- Installs Shared + SDK into `./.venv`
+- Writes `.env` with defaults (edit `CONCAI_MODEL_ID` as needed)
+- Creates `mods/hello_world.py` with a minimal `@mod`
+
+Re-run with `--force` to overwrite files.
+
+## 3) Add your endpoint
+
+[Reach out](https://x.com/ConcordanceAI) to us to get an endpoint for running the alpha version of the inference engine.
+
+
+## 4) Grab the examples
+
+The examples repository contains growing sets of mods you can upload directly:
+
+https://github.com/concordance-co/concai-examples
+
+Clone it alongside your project (or anywhere convenient).
+
+```bash
+git clone https://github.com/concordance-co/concai-examples
+```
+
+## 5) Upload a mod
+
+You can upload single files or bundled directories. For remote servers, include `--user-api-key <your_key>`.
+
+Single file (detects `@mod` entrypoints):
+
+```bash
+concai mod upload --file-name concai-examples/simple/1_prefill.py --url <url> --user-api-key <your_key>
+concai mod upload --file-name concai-examples/simple/2_logits.py --url <url> --user-api-key <your_key>
+concai mod upload --file-name concai-examples/simple/3_force_tokens.py --url <url> --user-api-key <your_key>
+concai mod upload --file-name concai-examples/simple/4_backtrack.py --url <url> --user-api-key <your_key>
+concai mod upload --file-name concai-examples/simple/5_force_output.py --url <url> --user-api-key <your_key>
+concai mod upload --file-name concai-examples/simple/6_tool_calls.py --url <url> --user-api-key <your_key>
+
+# scaffolding
+concai mod upload --file-name concai-examples/scaffolding/human_in_loop.py --url <url> --user-api-key <your_key>
+```
+
+The CLI prints registered mod names; these match the `@mod` function names (e.g., `adjust_prefill`, `adjust_logits`, `force_tokens`, etc.).
+
+## 6) Call the mod
+
+Enable a registered mod by appending `/<mod_name>` to your model string when calling the local server.
+
+Swap `<url>` with the inference endpoint given to you by Concordance.
+
+```bash
+export BASE_MODEL="modularai/Llama-3.1-8B-Instruct-GGUF"   # or from your .env
+export MOD_NAME="adjust_prefill"                            # one of the uploaded entrypoints
+
+curl -s <url>/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -d "$(jq -n --arg m "$BASE_MODEL/$MOD_NAME" '{
+        model: $m,
+        messages: [{role:"user", content:"Say hi."}]
+      }')"
+```
+
+If you prefer not to use `jq`, inline the JSON body directly.
+
+## What each simple mod demonstrates
+
+- 1_prefill: Read and rewrite the prefill before the first step (e.g., swap a phrase).
+- 2_logits: Mask a specific token by adjusting logits each `ForwardPass`.
+- 3_force_tokens: Watch the generated text and force a continuation.
+- 4_backtrack: Detect a phrase and backtrack + reinject a replacement.
+- 5_force_output: For trivial turns, skip decoding and return a canned response.
+- 6_tool_calls: Emit a tool call payload from the `Prefilled` event.
+
+The “scaffolding” examples show longer-running controllers:
+- human_in_loop: Track sequence confidence; when too low, self‑prompt a clarifying question wrapped in tags, then force the extracted question back to the user.
+
+Expect more examples to land in the repository over time.
+
+## Next steps
+
+- Building mods: /engine/building-mods
+- SDK actions and patterns: /engine/sdk
+- Strategies (constraints): /engine/strategies
+- Self‑Prompt internals: /engine/self-prompt
+- Flow engine (multi‑step): /engine/flow
+
+When you’re ready to publish your own mod bundle, use `concai mod upload --dir <path>` to package a project with a `mod.py` entry module.

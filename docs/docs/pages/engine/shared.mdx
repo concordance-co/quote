@@ -1,0 +1,41 @@
+# Shared Types
+
+Core event and action types used by the engine, plus utilities for validation and conversation context.
+
+## Events
+
+- `Prefilled(request_id, step, tokens_so_far_len, max_steps, context_info?)`
+- `ForwardPass(request_id, step, logits)`
+- `Sampled(request_id, step, sampled_token, tokens_so_far_len)`
+- `Added(request_id, step, added_tokens, tokens_so_far_len, forced)`
+
+Events flow in this general order: `Prefilled` → repeated `ForwardPass`/`Sampled`/`Added` as decoding progresses.
+
+## Actions
+
+- `Noop()` — do nothing.
+- `AdjustedPrefill(tokens, max_steps)` — replace the prefill tokens and optionally adjust `max_steps`.
+- `ForceTokens(tokens)` — force the next tokens to be emitted.
+- `AdjustedLogits(logits, token_temp?)` — replace or modify logits for the next token; optionally set `token_temp`.
+- `ForceOutput(tokens)` — force the remaining output to exactly these tokens.
+- `ToolCalls(payload)` — surface tool calls to the host.
+- `Backtrack(n, tokens?)` — erase `n` tokens; optionally reinject `tokens` after backtracking.
+
+Action permissions vary by event. The SDK’s `ActionBuilder` enforces this and raises `InvalidActionError` when violated.
+
+## Validation
+
+`shared.utils.validate_action(event, action)` returns `Noop` when `action` is `None`, and raises `InvalidActionError` if the action is not permitted for the event type.
+
+## Conversation Utilities
+
+`shared.conversation` exposes helpers for working with per-request messages:
+
+- `set_conversation(request_id, messages)` — persist a copy of the raw messages.
+- `get_conversation(request_id?)` — retrieve messages for the active request; passing a different `request_id` raises `PermissionError`.
+- `clear_conversation(request_id)` — clear stored messages.
+- `push_request_context(request_id)` / `pop_request_context(token)` — manage the current request context.
+- `tool_call_pairs(messages?)` — returns pairs of `(assistant.tool_call, tool_response)` by matching `tool_call_id`.
+
+These helpers unify imports across `quote_mod_sdk.conversation` and `sdk.quote_mod_sdk.conversation` aliased modules.
+

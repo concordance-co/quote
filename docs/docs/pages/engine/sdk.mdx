@@ -1,0 +1,239 @@
+import { Callout } from 'vocs/components'
+
+# Quote Mod SDK
+
+Author Python mods that respond to runtime events and return Quote actions. Mods are registered on the server and enabled per request.
+
+## Author a Mod
+
+Use the `@mod` decorator to receive the current event, an event-scoped `ActionBuilder`, and the active tokenizer.
+
+```python
+from quote_mod_sdk import ForwardPass, mod, tokenize
+
+@mod
+def forward_injection(event, actions, tokenizer):
+    if isinstance(event, ForwardPass):
+        tokens = tokenize("[ForwardInjected]", tokenizer)
+        return actions.force_tokens(tokens)
+    return actions.noop()
+```
+
+### Actions by Event
+
+The builder surfaces helpers permitted for the current event type:
+
+- `Prefilled`: `noop`, `adjust_prefill(tokens, max_steps?)`, `force_output(tokens)`, `tool_calls(payload)`
+- `ForwardPass`: `noop`, `force_tokens(tokens)`, `backtrack(steps, tokens?)`, `force_output(tokens)`, `tool_calls(payload)`, `adjust_logits(logits?, token_temp?)`
+- `Sampled`: `noop`, `force_tokens(tokens)`, `backtrack(...)`, `force_output(tokens)`, `tool_calls(payload)`
+- `Added`: `noop`, `force_tokens(tokens)`, `backtrack(...)`, `force_output(tokens)`, `tool_calls(payload)`
+
+<Callout type="warning">Returning an action not permitted for the event raises `InvalidActionError` at runtime.</Callout>
+
+### Tokenization
+
+Use the runtime tokenizer so your mod stays in sync with the serving model:
+
+```python
+from quote_mod_sdk import tokenize
+
+ids = tokenize("hello", tokenizer)
+```
+
+## Serialize & Register a Mod
+
+Serialize a callable into a payload that the server can execute in a sandboxed namespace.
+
+```python
+from quote_mod_sdk import serialize_mod
+
+payload = serialize_mod(forward_injection, name="forward_self_prompt")
+```
+
+Register via the server’s `/v1/mods` endpoint, then enable by suffixing the model string with the mod name (e.g. `base/model/my_mod`). Remote servers require including `user_api_key` in the payload.
+
+```json
+POST /v1/mods
+{ "user_api_key": "<your_key>", ... }
+{
+  "name": "forward_self_prompt",
+  "description": "Injects a fixed forward-pass token sequence",
+  "language": "python",
+  "module": "client_mod",
+  "entrypoint": "forward_injection",
+  "source": "...module source..."
+}
+```
+
+```json
+POST /v1/chat/completions
+{
+  "model": "modularai/Llama-3.1-8B-Instruct-GGUF/forward_self_prompt",
+  "messages": [{"role": "user", "content": "Hello"}]
+}
+```
+
+For remote servers with per-user mods, include your API key as a header when calling chat:
+
+```
+X-User-Api-Key: <your_key>
+```
+
+Only model strings with at least three slash-separated segments activate a registered mod.
+
+## Self-Prompting (Constrained Generation)
+
+For “self-prompt then constrain” flows, use `SelfPrompt` directly or `self_prompt_mod` backed by the strategies engine.
+
+```python
+# Imperative helper
+from quote_mod_sdk.self_prompt import SelfPrompt
+from quote_mod_sdk.strategies.strategy_constructor import ChoicesStrat
+
+sp = SelfPrompt(
+  prompt={"text": "<system>think step by step</system>"},
+  strategy=ChoicesStrat(["hello world and bob", "hello bob", "hello world"]),
+)
+
+@mod
+def constrained(event, actions, tokenizer):
+  from quote_mod_sdk import Prefilled, ForwardPass, Added
+  if isinstance(event, Prefilled):
+      sp.handle_prefilled(event, tokenizer)
+      return actions.noop()
+  if isinstance(event, ForwardPass):
+      return sp.handle_forward_pass(event, actions, tokenizer)
+  if isinstance(event, Added):
+      sp.handle_added(event, actions, tokenizer)
+      return actions.noop()
+  return actions.noop()
+
+# Or use the declarative wrapper
+from quote_mod_sdk import self_prompt_mod
+from quote_mod_sdk.strategies.strategy_constructor import ChoicesStrat
+
+my_mod = self_prompt_mod(
+  prompt={"text": "<system>think step by step</system>"},
+  strategy=ChoicesStrat(["hello world and bob", "hello bob", "hello world"]),
+  completion={"suffix": "\n", "force": True},
+)
+```
+
+- Emits `ForceTokens` until the prompt is flushed, then masks logits to allow only valid continuations per strategy.
+- Completion suffix can be auto-inserted; set `completion.force=false` to skip forcing.
+- Erase modes: `none` (default), `prompt` (erase only prompt), `all` (erase prompt+answer). See Self Prompt page for details.
+
+## Practical Patterns
+
+### Adjust Prefill
+
+```python
+from quote_mod_sdk import mod, Prefilled
+
+@mod
+def adjust_prefill(event, actions, tokenizer):
+    if isinstance(event, Prefilled):
+        prompt_text = tokenizer.decode(event.context_info.tokens[:event.context_info._prompt_len])
+        new_text = prompt_text.replace("Say hi.", "Say bye.")
+        return actions.adjust_prefill(tokenizer.encode(new_text, add_special_tokens=False))
+    return actions.noop()
+```
+
+### Mask a Token (Adjust Logits)
+
+```python
+from quote_mod_sdk import mod, ForwardPass
+from max.driver import Tensor
+
+@mod
+def adjust_logits(event, actions, tokenizer):
+    if isinstance(event, ForwardPass):
+        logits = event.logits.to_numpy()
+        em_dash_id = tokenizer.encode("—", add_special_tokens=False)[0]
+        logits[em_dash_id] = -1e9
+        return actions.adjust_logits(Tensor.from_numpy(logits))
+    return actions.noop()
+```
+
+### Force Continuation
+
+```python
+from quote_mod_sdk import mod, Added
+
+accum: dict[str, str] = {}
+
+@mod
+def force_tokens(event, actions, tokenizer):
+    if isinstance(event, Added):
+        text = tokenizer.decode(event.added_tokens)
+        accum[event.request_id] = accum.get(event.request_id, "") + text
+        if accum[event.request_id].endswith("hello"):
+            return actions.force_tokens(tokenizer.encode("hello and goodbye.", add_special_tokens=False))
+    return actions.noop()
+```
+
+### Backtrack and Replace
+
+```python
+from quote_mod_sdk import mod, Added
+
+accum: dict[str, str] = {}
+
+@mod
+def backtrack(event, actions, tokenizer):
+    if isinstance(event, Added):
+        text = tokenizer.decode(event.added_tokens)
+        accum[event.request_id] = accum.get(event.request_id, "") + text
+        needle = " I can't help with that"
+        if accum[event.request_id].endswith(needle):
+            return actions.backtrack(len(tokenizer.encode(needle, add_special_tokens=False)),
+                                     tokenizer.encode("I can help you with that: "))
+    return actions.noop()
+```
+
+### Produce Tool Calls
+
+```python
+from quote_mod_sdk import mod, Prefilled, get_conversation
+
+@mod
+def tool_calls(event, actions, tokenizer):
+    if isinstance(event, Prefilled):
+        convo = get_conversation()
+        last = convo[-1] if convo else {}
+        if last.get("role") == "user" and str(last.get("content", "")).strip() == "<tool_call>call_search()</tool_call>":
+            payload = {"id": f"call_{event.request_id.split('-')[0]}", "type": "function", "function": {"name": "call_search"}}
+            return actions.tool_calls(payload)
+    return actions.noop()
+```
+
+### Human-in-the-Loop Clarification
+
+Trigger a clarification SelfPrompt when sequence confidence (geometric mean of token probabilities) drops below a threshold. While the prompt is active, forward events to `SelfPrompt` until an answer is produced, then force the answer (optionally strip XML tags).
+
+Key steps:
+- cache latest logits on `ForwardPass` (via `to_numpy()`)
+- accumulate token probabilities on `Added`
+- when confidence < threshold, instantiate a `SelfPrompt` using `UntilStrat` with `UntilEndType.TAG`
+- route `Prefilled`/`ForwardPass`/`Added` to the helper until complete, then `force_output` the extracted answer
+
+### Validate JSON Blocks
+
+Watch for fenced ```json blocks in the accumulated output. If the JSON is invalid, locate the error position, backtrack to the offending token, and (optionally) set a `reject_id` so a retry masks that specific token by lowering its logit before sampling again.
+
+## Conversation Helpers
+
+Access per-request messages and resolved tool-call pairs directly in mods:
+
+```python
+from quote_mod_sdk import get_conversation, tool_call_pairs
+
+messages = get_conversation()  # active request only
+pairs = tool_call_pairs(messages)  # [(assistant.tool_call, tool_response), ...]
+```
+
+## Troubleshooting
+
+- Invalid action error → Use only actions allowed for the current event.
+- Missing entrypoint → The serialized function must be module-level and correctly named.
+- Decorator missing on server → Ensure the serialized source includes `from quote_mod_sdk import mod`.

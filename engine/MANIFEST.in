@@ -1,0 +1,2 @@
+exclude Makefile
+exclude src/quote/server/openai/remote.py

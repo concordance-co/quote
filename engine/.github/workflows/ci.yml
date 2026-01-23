@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv pip install ruff black isort
+
+      - name: Run ruff
+        run: uv run ruff check .
+        continue-on-error: true
+
+      - name: Check formatting with black
+        run: uv run black --check .
+        continue-on-error: true
+
+      - name: Check import sorting with isort
+        run: uv run isort --check-only .
+        continue-on-error: true
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv pip install -e shared
+          uv pip install -e sdk
+          uv pip install -e inference
+
+      - name: Run tests
+        run: uv run pytest tests/ -v --tb=short
+        continue-on-error: true
+
+      - name: Run SDK tests
+        run: uv run pytest tests/sdk/ -v --tb=short
+        continue-on-error: true
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv pip install mypy
+
+      - name: Run mypy on SDK
+        run: uv run mypy sdk/quote_mod_sdk --ignore-missing-imports
+        continue-on-error: true
+
+      - name: Run mypy on shared
+        run: uv run mypy shared/src/shared --ignore-missing-imports
+        continue-on-error: true

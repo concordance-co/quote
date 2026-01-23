@@ -1,0 +1,98 @@
+{
+  "request": {
+    "request_id": "test_req_001",
+    "created_at": "2025-12-01T18:30:00Z",
+    "completed_at": "2025-12-01T18:30:05Z",
+    "model": "gemini-2.0-flash",
+    "user_api_key": "test_user_123",
+    "max_tokens": 1000,
+    "temperature": 0.7,
+    "mod_text": "test_mod.py"
+  },
+  "events": [
+    {
+      "event_type": "Prefilled",
+      "step": 0,
+      "sequence_order": 0,
+      "prompt_length": 150,
+      "tokens_so_far_len": 0,
+      "max_steps": 500
+    },
+    {
+      "event_type": "ForwardPass",
+      "step": 1,
+      "sequence_order": 1,
+      "input_text": "Once upon a time",
+      "top_tokens": [
+        {"token": 1234, "prob": 0.85},
+        {"token": 5678, "prob": 0.10},
+        {"token": 9012, "prob": 0.05}
+      ]
+    },
+    {
+      "event_type": "Sampled",
+      "step": 1,
+      "sequence_order": 2,
+      "sampled_token": 1234,
+      "token_text": " there"
+    },
+    {
+      "event_type": "Added",
+      "step": 1,
+      "sequence_order": 3,
+      "added_tokens": [1234],
+      "added_token_count": 1,
+      "forced": false
+    }
+  ],
+  "mod_calls": [
+    {
+      "event_sequence_order": 0,
+      "mod_name": "test_mod",
+      "event_type": "Prefilled",
+      "step": 0,
+      "execution_time_ms": 2.5,
+      "exception_occurred": false
+    },
+    {
+      "event_sequence_order": 1,
+      "mod_name": "test_mod",
+      "event_type": "ForwardPass",
+      "step": 1,
+      "execution_time_ms": 1.2,
+      "exception_occurred": false
+    }
+  ],
+  "mod_logs": [
+    {
+      "mod_call_sequence": 0,
+      "mod_name": "test_mod",
+      "log_message": "Prefill event processed successfully",
+      "log_level": "INFO"
+    },
+    {
+      "mod_call_sequence": 1,
+      "mod_name": "test_mod",
+      "log_message": "Forward pass complete, top token probability: 0.85",
+      "log_level": "DEBUG"
+    }
+  ],
+  "actions": [
+    {
+      "mod_call_sequence": 0,
+      "action_type": "Noop",
+      "action_order": 0
+    },
+    {
+      "mod_call_sequence": 1,
+      "action_type": "AdjustedLogits",
+      "action_order": 0,
+      "logits_shape": "[1, 32000]",
+      "temperature": 0.8,
+      "details": {
+        "adjusted_tokens": [1234, 5678],
+        "bias_applied": 0.1
+      }
+    }
+  ]
+}

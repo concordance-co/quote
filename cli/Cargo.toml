@@ -1,0 +1,28 @@
+[package]
+name = "concai"
+version = "0.1.1"
+authors = ["Marshall Vyletel marshall@concordance.co", "Brock Elmore brock@concordance.co"]
+edition = "2024"
+license = "MIT"
+rust-version = "1.90"
+description = "CLI interface for the Concordance Inference Engine"
+readme = "README.md"
+keywords = ["cli", "inference", "AI"]
+build = "build.rs"
+categories = ["command-line-utilities"]
+homepage = "https://concordance.co"
+
+[[bin]]
+name = "concai"
+path = "src/main.rs"
+
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+reqwest = { version = "0.12", features = ["blocking", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+toml = "0.8"
+which = "5.0"

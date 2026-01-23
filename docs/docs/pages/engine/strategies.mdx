@@ -1,0 +1,151 @@
+# Strategies
+
+Deterministic, step-by-step constraints that gate the model’s next token. Strategies are compiled once (using the active tokenizer) and then consulted each decoding step to compute an allowed/disallowed token set. The engine applies a large negative mask to disallowed logits, making only valid continuations feasible.
+
+At runtime, every strategy implements:
+
+- `start(tokenizer) -> state`
+- `allowed_tokens(state, tokenizer) -> set[int]`
+- `disallowed_tokens(state, tokenizer) -> set[int]`
+- `step(state, token_id, tokenizer) -> None`
+- `is_complete(state) -> bool`
+
+The Self Prompt helper uses these signals to create an `AdjustedLogits` action per step.
+
+## Strategy Types
+
+### ChoicesStrat
+
+Force the generation to choose exactly one string from a finite set. Multi-token choices are supported via a trie.
+
+- Builds a token trie of all choices (`tokenizer.encode` for each string)
+- `allowed_tokens` returns the union of outgoing edges from the active frontier
+- When the frontier collapses to terminal nodes, the choice is complete
+- Example: `["hello", "hello world"]` → first token must be “hello”; next may be end or “ world”
+
+```python
+from quote_mod_sdk.strategies.strategy_constructor import ChoicesStrat
+
+ChoicesStrat(["yes", "no", "unsure"])  # single-token or multi-token strings supported
+```
+
+### UntilStrat
+
+Constrain until a terminator appears.
+
+- `end_type=UntilEndType.TAG`: completes when the full `end` string appears in the decoded stream
+- `end_type=UntilEndType.ANYCHAR`: completes when any character from `end` is observed
+- `start` (optional): forces a prefix sequence before free generation (useful to anchor tags)
+- EOS is disallowed by default while running this strategy
+
+```python
+from quote_mod_sdk.strategies.strategy_constructor import UntilStrat
+from quote_mod_sdk.strategies.primitives import UntilEndType
+
+# XML-like segment: emit content inside tags, then complete when closing tag appears
+UntilStrat("<answer>", UntilEndType.TAG, "</answer>")
+
+# Free-run until punctuation
+UntilStrat("", UntilEndType.ANYCHAR, ".,!?\n")
+```
+
+### CharsStrat
+
+Constrain to a character class with length control.
+
+- `mode`: `CharsMode.ALPHA | ALPHANUMERIC | NUMERIC | STRING`
+- `min`: minimum number of characters before completion allowed
+- `stop`: either a maximum count (int) or a specific stop token (str) to stop at
+- Uses decoded token text to filter allowed token IDs per step
+
+```python
+from quote_mod_sdk.strategies.strategy_constructor import CharsStrat
+from quote_mod_sdk.strategies.primitives import CharsMode
+
+# Exactly 4 digits
+CharsStrat(CharsMode.NUMERIC, stop=4, min=4)
+
+# At least 2 alphanumerics, stop when we see a dot
+CharsStrat(CharsMode.ALPHANUMERIC, stop=".", min=2)
+```
+
+### ListStrat
+
+Constrain to a list of elements with optional wrappers, separators, and an end suffix.
+
+- Structural tokens: `open`, `close`, `wrap` (per element), `sep`, `end_with`
+- Cardinality: `min` and `max` number of elements (default: `0..∞`)
+- Elements: either a single element strategy or a fixed list of element strategies
+  - If `elements` is a list, `min` and `max` are set to the list length and evaluated sequentially
+- Phases: `in_open → await_element → (in_wrap_open) → in_element → (in_wrap_close) → await_sep → in_separator → (in_close) → (in_end_with)`
+- Completion: when `close` (and optional `end_with`) is fully consumed and `min` elements satisfied
+
+```python
+from quote_mod_sdk.strategies.strategy_constructor import ListStrat, ChoicesStrat
+
+# CSV-like list of choices
+ListStrat(
+  elements=ChoicesStrat(["red", "green", "blue"]),
+  open="[", close="]", sep=", ", wrap='"', end_with="\n",
+  min=1, max=3,
+)
+
+# Fixed 3-field tuple: <alpha>-<digits>-<alpha>
+from quote_mod_sdk.strategies.primitives import CharsMode
+ListStrat([
+  CharsStrat(CharsMode.ALPHA, stop=1, min=1),
+  CharsStrat(CharsMode.NUMERIC, stop=3, min=3),
+  CharsStrat(CharsMode.ALPHA, stop=2, min=2),
+], sep="-")
+```
+
+## Usage
+
+```python
+from quote_mod_sdk.strategies.strategy_constructor import (
+  ChoicesStrat, UntilStrat, CharsStrat, ListStrat
+)
+from quote_mod_sdk.strategies.primitives import UntilEndType, CharsMode
+
+country = ChoicesStrat(["US", "CA", "GB"])  # classification
+digits = CharsStrat(CharsMode.NUMERIC, min=2, stop=5)  # 2..5 digits
+csv = ListStrat(elements=ChoicesStrat(["A", "B", "C"]), sep=", ")  # CSV-of-choices
+```
+
+These strategies are typically used via `SelfPrompt`/`self_prompt_mod`, which compiles the strategy with the runtime tokenizer and applies constraints during decoding.
+
+## How Masking Works
+
+At each `ForwardPass` step, SelfPrompt gathers:
+
+- `allowed = strategy.allowed_tokens(state, tokenizer)`
+- `disallowed = strategy.disallowed_tokens(state, tokenizer)`
+
+Then it adjusts the logits with a mask value (default `-1e9`), yielding an `AdjustedLogits` action. If only `disallowed` is provided for a step, the helper masks just those tokens; otherwise it masks everything except the `allowed` set. Set `argmax_sampling=True` on SelfPrompt to force deterministic sampling (`token_temp=0`).
+
+## Completion Semantics
+
+- ChoicesStrat: complete when exactly one choice is matched and no further edges remain
+- UntilStrat: complete when `end` is observed (TAG) or when any stop char is observed (ANYCHAR)
+- CharsStrat: complete when `stop` is reached (int length or stop token), respecting `min`
+- ListStrat: complete after `close` (and optional `end_with`) and `min` elements satisfied; fixed-list mode completes after the last element
+
+## Dynamic Updates
+
+When using SelfPrompt with `ChoicesStrat` (or ListStrat containing `ChoicesStrat` elements), you can update options at runtime:
+
+```python
+sp.refresh_responses(["Yes", "No"], request_id)
+# or update a particular element in a ListStrat by index
+sp.refresh_responses(["A", "B", "C"], request_id=request_id, idx=0)
+```
+
+## Tips & Pitfalls
+
+- Tokenization matters: a “character” could be a multi-byte token; CharsStrat filters by decoded text
+- For UntilStrat TAG mode, provide the full closing tag; for ANYCHAR, include every terminating char
+- Use `wrap` in ListStrat to constrain quotes or brackets around each element
+- If `allowed`/`disallowed` sets are empty, the helper leaves logits unchanged for that step
+- Prefer strategies over post-hoc backtracking when the schema is known — they’re more efficient and predictable
+
+The engine uses these to mask logits each step via `AdjustedLogits`.

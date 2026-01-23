@@ -1,0 +1,14 @@
+.venv/
+**/.venv/
+.uv-cache/
+**/.uv-cache/
+__pycache__/
+.env
+.DS_Store
+**/.DS_Store
+target/
+**/node_modules
+**/*.pyc
+**/frontend/dist
+**/build/
+**/backups/

@@ -1,0 +1,73 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyo
+*.pyd
+build/
+dist/
+wheels/
+*.egg
+*.egg-info/
+*.manifest
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.servers
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.hypothesis/
+.tox/
+.nox/
+
+# Logs
+*.log
+inference/src/quote/logs/requests/*
+inference/src/quote/logs/failures/*
+inference/src/quote/logs/tmp*
+
+# Quote hot-swap backups and local state
+src/quote/hot/backups/
+.logic/
+
+# SDK local state (generated at runtime)
+sdk/quote_mod_sdk/.mods_registry.json
+
+# Distribution / packaging
+.Python
+*.so
+MANIFEST
+
+# mypy / type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/

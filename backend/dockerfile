@@ -1,0 +1,45 @@
+# syntax=docker/dockerfile:1
+
+########################
+# Build stage
+########################
+FROM rust:latest AS builder
+
+WORKDIR /app
+
+# 1. Cache dependencies
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src \
+    && echo 'fn main() {}' > src/main.rs \
+    && cargo build --release || true
+
+# 2. Now bring in the real sources
+COPY . .
+# Build release binary (binary name defaults to package name = "thunder")
+RUN cargo build --release --bin thunder
+
+########################
+# Runtime stage
+########################
+FROM debian:bookworm-slim AS runtime
+
+# Small set of runtime deps (TLS, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-venv \
+    ca-certificates \
+    && ln -s /usr/bin/python3 /usr/local/bin/python \
+    && ln -s /usr/bin/pip3 /usr/local/bin/pip || true \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the binary
+COPY --from=builder /app/target/release/thunder /app/thunder
+
+ENV RUST_LOG=info
+# Whatever port your Rust server uses
+EXPOSE 6767
+
+# Default entrypoint (nice for local docker run)
+CMD ["./thunder"]

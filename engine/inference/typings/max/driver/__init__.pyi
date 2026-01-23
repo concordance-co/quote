@@ -1,0 +1,59 @@
+from __future__ import annotations
+from typing import Any, Generator, Optional, Sequence, Tuple
+import numpy.typing as npt
+from max.dtype import DType
+from max import driver
+from os import PathLike
+
+
+
+Shape = Tuple[int, ...]
+Index = Any  # keep loose unless you want to mirror Union[int, slice, Sequence[Union[int, slice]]]
+
+class Tensor:
+    # ---- attributes ----
+    dtype: DType
+    shape: Shape
+    device: Any
+    stream: Any
+    is_contiguous: bool
+    num_elements: int
+    element_size: int
+
+    # ---- ctor (compiled) ----
+    def __init__(self, dtype: DType, shape: Sequence[int] | int = ..., stream: Any = ...) -> None: ...
+
+    # ---- indexing / scalar conversion ----
+    def __getitem__(self, key: Index) -> "Tensor": ...
+    def __setitem__(self, key: Index, value: Any) -> None: ...
+    def item(self) -> Any: ...
+
+    # ---- movement / views / copies (compiled + monkey-patched) ----
+    def to(self, device: Any) -> "Tensor": ...
+    def copy(self, device: driver.Device | None) -> "Tensor": ...
+    def view(self, dtype: DType, shape: Sequence[int] | None = ...) -> "Tensor": ...
+    def _view(self, dtype: DType, shape: Sequence[int]) -> "Tensor": ...
+    def contiguous(self) -> "Tensor": ...
+    def inplace_copy_from(self, src: "Tensor") -> None: ...
+    def _inplace_copy_from(self, src: "Tensor") -> None: ...
+
+    # ---- helpers added in Python ----
+    def _iterate_indices(self) -> Generator[Tuple[int, ...], None, None]: ...
+    def __repr__(self) -> str: ...
+
+    # ---- conversions (static/cls) ----
+    @staticmethod
+    def from_numpy(arr: npt.NDArray[Any]) -> "Tensor": ...
+    def to_numpy(self) -> npt.NDArray[Any]: ...
+    @staticmethod
+    def from_dlpack(array: Any, *, copy: Optional[bool] = None) -> "Tensor": ...
+    @staticmethod
+    def mmap(
+        filename: PathLike[str] | str,
+        dtype: DType,
+        shape: Sequence[int] | int,
+        mode: Any = ...,
+        offset: int = ...,
+    ) -> "Tensor": ...
+
+def load_max_tensor(path: PathLike[str] | str) -> Tensor: ...

@@ -1,0 +1,188 @@
+# Building Mods
+
+A practical guide to constructing Quote mods: event loop, state, actions, conversation, constraints, and flows.
+
+## Skeleton
+
+```python
+from quote_mod_sdk import mod, Prefilled, ForwardPass, Added
+
+@mod
+def my_mod(event, actions, tokenizer):
+    if isinstance(event, Prefilled):
+        return actions.noop()
+    if isinstance(event, ForwardPass):
+        return actions.noop()
+    if isinstance(event, Added):
+        return actions.noop()
+    return actions.noop()
+```
+
+The handler runs once per event in the generation loop:
+
+- Prefilled — before first step; inspect or modify the prefill
+- ForwardPass — right before sampling; read/modify logits, or force tokens
+- Added — after sampling; observe decoded tokens (and whether they were forced)
+
+## Per-request State
+
+Maintain cross-event state keyed by `event.request_id`.
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class State:
+    accum_text: str = ""
+    last_logits = None
+
+states: dict[str, State] = {}
+
+def get_state(rid: str) -> State:
+    st = states.get(rid)
+    if st is None:
+        st = State()
+        states[rid] = st
+    return st
+```
+
+## Tokenizer
+
+Use the runtime tokenizer to stay consistent with the serving model.
+
+```python
+ids = tokenizer.encode("hello", add_special_tokens=False)
+text = tokenizer.decode(ids)
+```
+
+## Core Actions
+
+- Adjust prefill: `actions.adjust_prefill(tokens, max_steps?)`
+- Force tokens: `actions.force_tokens(tokens)`
+- Adjust logits: `actions.adjust_logits(logits_like, token_temp?)`
+- Backtrack: `actions.backtrack(n, reinject_tokens?)`
+- Force output: `actions.force_output(tokens)`
+- Tool calls: `actions.tool_calls(payload)`
+
+Examples:
+
+```python
+# Replace a phrase before generation
+if isinstance(event, Prefilled):
+  prompt = tokenizer.decode(event.context_info.tokens[:event.context_info._prompt_len])
+  new = prompt.replace("Say hi.", "Say bye.")
+  return actions.adjust_prefill(tokenizer.encode(new, add_special_tokens=False))
+
+# Mask a token each step
+if isinstance(event, ForwardPass):
+  import numpy as np
+  from max.driver import Tensor
+  logits = event.logits.to_numpy()
+  ban = tokenizer.encode("—", add_special_tokens=False)[0]
+  logits[ban] = -1e9
+  return actions.adjust_logits(Tensor.from_numpy(logits))
+
+# Backtrack and replace text
+if isinstance(event, Added):
+  st = get_state(event.request_id)
+  st.accum_text += tokenizer.decode(event.added_tokens)
+  needle = " I can't help with that"
+  if st.accum_text.endswith(needle):
+    return actions.backtrack(
+      len(tokenizer.encode(needle, add_special_tokens=False)),
+      tokenizer.encode("I can help you with that: ")
+    )
+```
+
+## Conversation & Tools
+
+Use `get_conversation()` to inspect prior messages, and `tool_call_pairs()` to pair assistant tool calls with tool responses.
+
+```python
+from quote_mod_sdk import get_conversation, tool_call_pairs
+
+messages = get_conversation()
+pairs = tool_call_pairs(messages)
+
+# Emit a tool call
+payload = {"id": f"call_{event.request_id.split('-')[0]}", "type": "function", "function": {"name": "search"}}
+return actions.tool_calls(payload)
+```
+
+## Constrained Generation
+
+Two approaches:
+
+- Imperative `SelfPrompt`: construct once, then forward events until completion.
+
+```python
+from quote_mod_sdk.self_prompt import SelfPrompt
+from quote_mod_sdk.strategies.strategy_constructor import UntilStrat
+from quote_mod_sdk.strategies.primitives import UntilEndType
+
+sp = SelfPrompt(
+  prompt={"text": " Wrap a question in <question_to_user> tags: "},
+  strategy=UntilStrat("<question_to_user>", UntilEndType.TAG, "</question_to_user>"),
+)
+
+if isinstance(event, Prefilled):
+  sp.handle_prefilled(event, tokenizer); return actions.noop()
+if isinstance(event, ForwardPass):
+  return sp.handle_forward_pass(event, actions, tokenizer)
+if isinstance(event, Added):
+  sp.handle_added(event, actions, tokenizer); return actions.noop()
+```
+
+- Declarative `self_prompt_mod`: one call returns a mod callable with the same behavior.
+
+```python
+from quote_mod_sdk import self_prompt_mod
+from quote_mod_sdk.strategies.strategy_constructor import ChoicesStrat
+
+classifier = self_prompt_mod(
+  prompt={"text": " Choose: A or B "},
+  strategy=ChoicesStrat(["A", "B"]),
+  completion={"suffix": "\n", "force": True},
+)
+```
+
+## Flows (Multi-step)
+
+For multi-step reasoning with branching, use the flow engine. Define `FlowQuestion`s with strategies and route between them; let `FlowEngine` drive constraints and transitions via `ENGINE.handle_event(...)` in your mod.
+
+```python
+from quote_mod_sdk.flow import FlowQuestion, FlowEngine, route_question, route_message
+from quote_mod_sdk.strategies.strategy_constructor import ChoicesStrat
+
+q = FlowQuestion(name="confirm", prompt=" Proceed? (yes/no): ", strategy=ChoicesStrat(["yes","no"]))
+q.on("yes", route_message("Ok!"))
+ENGINE = FlowEngine(entry_question=q)
+
+@mod
+def flow_mod(event, actions, tokenizer):
+  return ENGINE.handle_event(event, actions, tokenizer)
+```
+
+## Register & Enable
+
+Serialize and register a mod with the server; enable it by suffixing the model string.
+
+```python
+from quote_mod_sdk import serialize_mod
+payload = serialize_mod(my_mod, name="my_mod")
+# POST payload to /v1/mods
+```
+
+```json
+POST /v1/chat/completions
+{ "model": "base/model/my_mod", "messages": [{"role":"user","content":"Hi"}] }
+```
+
+## Tips
+
+- Always guard on event type; return `actions.noop()` when not acting
+- Use `event.added_tokens` with `event.forced` to ignore forced tokens in your own metrics
+- Prefer masking logits with `adjust_logits` instead of sampling-time conditionals when feasible
+- Keep state bounded and clear it when a request finishes (e.g., on completion token)
+- Validate actions per event implicitly via the decorator (invalid combinations raise)
+

@@ -1,0 +1,27 @@
+release_version = "0.4.3"
+
+[sdk]
+package = "quote-mod-sdk"
+version = "0.4.3"
+wheel_url = "https://github.com/concordance-co/concordance-artifacts/releases/download/v0.4.3/quote_mod_sdk-0.4.3-py3-none-any.whl"
+
+[cli]
+package = "concai"
+version = "0.1.2"
+wheel_url = "https://github.com/concordance-co/concordance-artifacts/releases/download/v0.4.1/concord_cli-0.4.1-py3-none-any.whl"
+
+[engine]
+package = "quote"
+version = "0.4.3"
+wheel_url = "https://github.com/concordance-co/concordance-artifacts/releases/download/v0.4.3/quote-0.4.3-py3-none-any.whl"
+extra_indexes = [
+    "https://modular.gateway.scarf.sh/simple",
+]
+
+[shared]
+package = "shared"
+version = "0.4.3"
+wheel_url = "https://github.com/concordance-co/concordance-artifacts/releases/download/v0.4.3/shared-0.4.3-py3-none-any.whl"
+
+[ports]
+engine = 8000
