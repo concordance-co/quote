@@ -295,7 +295,7 @@ function AppContent() {
               asChild
             >
               <a
-                href="https://github.com/concordance-co/concordance"
+                href="https://github.com/concordance-co/quote"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1"
@@ -471,7 +471,7 @@ function PlaygroundPage() {
               asChild
             >
               <a
-                href="https://github.com/concordance-co/concordance"
+                href="https://github.com/concordance-co/quote"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1"

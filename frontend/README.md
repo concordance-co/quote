@@ -29,7 +29,7 @@ A powerful web interface for monitoring, debugging, and analyzing LLM (Large Lan
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/concordance-co/concordance.git
+   git clone https://github.com/concordance-co/quote.git
    cd concordance/frontend
    ```
 

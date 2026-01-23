@@ -46,7 +46,7 @@ Unacceptable behavior includes harassment, trolling, personal attacks, or publis
 
 3. **Add the upstream remote**
    ```bash
-   git remote add upstream https://github.com/concordance-co/concordance.git
+   git remote add upstream https://github.com/concordance-co/quote.git
    ```
 
 4. **Install dependencies**
@@ -80,7 +80,7 @@ We welcome many types of contributions:
 
 ### Finding Something to Work On
 
-- Check [GitHub Issues](https://github.com/concordance-co/concordance/issues) for open issues
+- Check [GitHub Issues](https://github.com/concordance-co/quote/issues) for open issues
 - Look for issues labeled `good first issue` if you're new
 - Look for issues labeled `help wanted` for priority items
 - Feel free to ask questions on any issue before starting work
@@ -289,7 +289,7 @@ When requesting a feature, include:
 
 If you have questions about contributing:
 
-- Check existing [GitHub Issues](https://github.com/concordance-co/concordance/issues)
+- Check existing [GitHub Issues](https://github.com/concordance-co/quote/issues)
 - Open a new issue with your question
 - Reach out to maintainers
 
