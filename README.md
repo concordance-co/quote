@@ -1,8 +1,5 @@
 # Concordance
 
-> [!WARNING]
-> This is considered alpha software. There will be bugs and potential security issues.
-
 Concordance is an open-source inference stack that lets you **observe, modify, and control LLM generation in real-time**. It provides:
 
 - **Quote Engine** — An inference server with a programmable mod system for token-level intervention
