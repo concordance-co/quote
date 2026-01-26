@@ -798,7 +798,6 @@ export default function Playground() {
       <div className="shrink-0 flex items-center justify-between mb-3 sm:mb-4 px-1 max-w-5xl mx-auto w-full">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
             <h1 className="text-sm sm:text-lg font-semibold font-mono text-foreground tracking-wide">
               <span className="xs:inline">Token Injection Lab</span>
             </h1>
@@ -1014,9 +1013,7 @@ export default function Playground() {
                       }
                       onBlur={() =>
                         setMaxTokens((v) =>
-                          v === "" || v < 1
-                            ? 256
-                            : Math.min(2048, v),
+                          v === "" || v < 1 ? 256 : Math.min(2048, v),
                         )
                       }
                       disabled={isRunning}
