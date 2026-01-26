@@ -1,11 +1,11 @@
 use axum::{
-    extract::{Path, State},
-    http::{header, HeaderMap, StatusCode},
-    response::{Html, IntoResponse, Response},
     Json,
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode, header},
+    response::{Html, IntoResponse, Response},
 };
 
-use crate::handlers::logs::{fetch_log_response, LogResponse};
+use crate::handlers::logs::{LogResponse, fetch_log_response};
 use crate::utils::{ApiError, AppState};
 
 /// Detect crawler user-agents that need OG meta tags
@@ -43,7 +43,12 @@ fn html_escape(s: &str) -> String {
 /// Truncate string to max chars, adding ellipsis if needed
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.chars().count() > max_chars {
-        format!("{}...", s.chars().take(max_chars.saturating_sub(3)).collect::<String>())
+        format!(
+            "{}...",
+            s.chars()
+                .take(max_chars.saturating_sub(3))
+                .collect::<String>()
+        )
     } else {
         s.to_string()
     }
@@ -65,7 +70,13 @@ fn short_model_name(model: &str) -> String {
         "claude".to_string()
     } else {
         // Take last path segment or first 15 chars
-        model.split('/').last().unwrap_or(model).chars().take(15).collect()
+        model
+            .split('/')
+            .last()
+            .unwrap_or(model)
+            .chars()
+            .take(15)
+            .collect()
     }
 }
 
@@ -75,11 +86,13 @@ fn extract_injection_info(log: &LogResponse) -> Option<InjectionInfo> {
     for action in &log.actions {
         if action.action_type == "ForceTokens" {
             // Extract tokens_as_text from payload
-            if let Some(tokens_array) = action.payload.get("tokens_as_text").and_then(|v| v.as_array()) {
-                let injection_string: String = tokens_array
-                    .iter()
-                    .filter_map(|v| v.as_str())
-                    .collect();
+            if let Some(tokens_array) = action
+                .payload
+                .get("tokens_as_text")
+                .and_then(|v| v.as_array())
+            {
+                let injection_string: String =
+                    tokens_array.iter().filter_map(|v| v.as_str()).collect();
 
                 if !injection_string.is_empty() {
                     return Some(InjectionInfo {
@@ -110,9 +123,14 @@ fn generate_og_svg(
     injection: Option<InjectionInfo>,
 ) -> String {
     let model_short = html_escape(&short_model_name(model));
-    let tokens_str = max_tokens.map(|t| format!("{} tokens", t)).unwrap_or_else(|| "256 tokens".to_string());
+    let tokens_str = max_tokens
+        .map(|t| format!("{} tokens", t))
+        .unwrap_or_else(|| "256 tokens".to_string());
     let user_prompt_escaped = html_escape(&truncate(user_prompt, 60));
-    let system_escaped = html_escape(&truncate(system_prompt.unwrap_or("You are a helpful assistant."), 50));
+    let system_escaped = html_escape(&truncate(
+        system_prompt.unwrap_or("You are a helpful assistant."),
+        50,
+    ));
     let url_display = html_escape(&truncate(share_url, 50));
 
     // Build injection section if present
@@ -198,7 +216,11 @@ fn generate_og_svg(
 }
 
 /// Build output section with optional injection highlighting
-fn build_output_section(output_text: &str, y_start: i32, injection: Option<&InjectionInfo>) -> String {
+fn build_output_section(
+    output_text: &str,
+    y_start: i32,
+    injection: Option<&InjectionInfo>,
+) -> String {
     let line_height = 32;
     let max_chars_per_line = 85;
     let max_lines = 4;
@@ -226,7 +248,13 @@ fn build_output_section(output_text: &str, y_start: i32, injection: Option<&Inje
     }
 
     // Add ellipsis to last line if we truncated
-    if lines.len() == max_lines && output_text.split_whitespace().count() > lines.iter().map(|l| l.split_whitespace().count()).sum::<usize>() {
+    if lines.len() == max_lines
+        && output_text.split_whitespace().count()
+            > lines
+                .iter()
+                .map(|l| l.split_whitespace().count())
+                .sum::<usize>()
+    {
         if let Some(last) = lines.last_mut() {
             if last.len() > max_chars_per_line - 3 {
                 *last = last.chars().take(max_chars_per_line - 3).collect();
@@ -290,8 +318,21 @@ fn build_output_section(output_text: &str, y_start: i32, injection: Option<&Inje
 /// GET /share/request/{token}/og-image.png
 pub async fn og_image_handler(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(public_token): Path<String>,
 ) -> Result<Response, ApiError> {
+    // Derive base URL from Host header or fall back to env var / default
+    let base_host = headers
+        .get(header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            std::env::var("PUBLIC_BASE_URL")
+                .ok()
+                .map(|url| url.strip_prefix("https://").unwrap_or(&url).to_string())
+        })
+        .unwrap_or_else(|| "concordance.co".to_string());
+
     // Fetch request data
     let request_id: Option<String> = sqlx::query_scalar(
         "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
@@ -306,7 +347,7 @@ pub async fn og_image_handler(
 
     let log = fetch_log_response(&state.db_pool, &request_id).await?;
 
-    let share_url = format!("concordance.co/share/request/{}", public_token);
+    let share_url = format!("{}/share/request/{}", base_host, public_token);
 
     // Extract injection info from ForceTokens actions
     let injection = extract_injection_info(&log);
@@ -326,9 +367,12 @@ pub async fn og_image_handler(
     let mut fontdb = fontdb::Database::new();
 
     // Load IBM Plex Mono fonts (embedded in binary)
-    static IBM_PLEX_MONO_REGULAR: &[u8] = include_bytes!("../../assets/fonts/IBMPlexMono-Regular.ttf");
-    static IBM_PLEX_MONO_MEDIUM: &[u8] = include_bytes!("../../assets/fonts/IBMPlexMono-Medium.ttf");
-    static IBM_PLEX_MONO_SEMIBOLD: &[u8] = include_bytes!("../../assets/fonts/IBMPlexMono-SemiBold.ttf");
+    static IBM_PLEX_MONO_REGULAR: &[u8] =
+        include_bytes!("../../assets/fonts/IBMPlexMono-Regular.ttf");
+    static IBM_PLEX_MONO_MEDIUM: &[u8] =
+        include_bytes!("../../assets/fonts/IBMPlexMono-Medium.ttf");
+    static IBM_PLEX_MONO_SEMIBOLD: &[u8] =
+        include_bytes!("../../assets/fonts/IBMPlexMono-SemiBold.ttf");
 
     fontdb.load_font_data(IBM_PLEX_MONO_REGULAR.to_vec());
     fontdb.load_font_data(IBM_PLEX_MONO_MEDIUM.to_vec());
@@ -369,6 +413,14 @@ pub async fn share_request_with_og(
     headers: HeaderMap,
     Path(public_token): Path<String>,
 ) -> Result<Response, ApiError> {
+    // Derive base URL from Host header or fall back to env var / default
+    let base_url = headers
+        .get(header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .map(|host| format!("https://{}", host))
+        .or_else(|| std::env::var("PUBLIC_BASE_URL").ok())
+        .unwrap_or_else(|| "https://concordance.co".to_string());
+
     if !is_crawler(&headers) {
         // Regular browsers get JSON (existing behavior)
         let response = get_public_request_json(State(state), Path(public_token)).await?;
@@ -397,11 +449,8 @@ pub async fn share_request_with_og(
         .user_prompt
         .as_deref()
         .unwrap_or("View this inference log on Concordance");
-    let image_url = format!(
-        "https://concordance.co/share/request/{}/og-image.png",
-        public_token
-    );
-    let page_url = format!("https://concordance.co/share/request/{}", public_token);
+    let image_url = format!("{}/share/request/{}/og-image.png", base_url, public_token);
+    let page_url = format!("{}/share/request/{}", base_url, public_token);
 
     let html = format!(
         r#"<!DOCTYPE html>
