@@ -117,9 +117,7 @@ fn generate_og_svg(
     model: &str,
     max_tokens: Option<i32>,
     user_prompt: &str,
-    system_prompt: Option<&str>,
     output_text: &str,
-    share_url: &str,
     injection: Option<InjectionInfo>,
 ) -> String {
     let model_short = html_escape(&short_model_name(model));
@@ -127,11 +125,6 @@ fn generate_og_svg(
         .map(|t| format!("{} tokens", t))
         .unwrap_or_else(|| "256 tokens".to_string());
     let user_prompt_escaped = html_escape(&truncate(user_prompt, 60));
-    let system_escaped = html_escape(&truncate(
-        system_prompt.unwrap_or("You are a helpful assistant."),
-        50,
-    ));
-    let url_display = html_escape(&truncate(share_url, 50));
 
     // Build injection section if present
     let injection_section = if let Some(ref inj) = injection {
@@ -187,10 +180,6 @@ fn generate_og_svg(
   <text x="40" y="150" fill="#737373" font-size="14" font-family="IBM Plex Mono">USER</text>
   <text x="40" y="178" fill="#ffffff" font-size="20" font-family="IBM Plex Mono">{user_prompt}</text>
 
-  <!-- SYSTEM section -->
-  <text x="700" y="150" fill="#737373" font-size="14" font-family="IBM Plex Mono">SYSTEM</text>
-  <text x="700" y="178" fill="#a3a3a3" font-size="18" font-family="IBM Plex Mono">{system}</text>
-
   <!-- Divider line -->
   <line x1="40" y1="210" x2="1160" y2="210" stroke="#262626" stroke-width="1"/>
 {injection_section}
@@ -200,17 +189,14 @@ fn generate_og_svg(
 
   <!-- Footer -->
   <line x1="40" y1="560" x2="1160" y2="560" stroke="#262626" stroke-width="1"/>
-  <text x="40" y="595" fill="#34d399" font-size="16" font-family="IBM Plex Mono">{url}</text>
   {footer_badge}
 </svg>"##,
         model = model_short,
         tokens = tokens_str,
         user_prompt = user_prompt_escaped,
-        system = system_escaped,
         injection_section = injection_section,
-        output_label_y = output_y_start - 15,
+        output_label_y = output_y_start - 25,
         output_section = output_section,
-        url = url_display,
         footer_badge = footer_badge,
     )
 }
@@ -318,21 +304,9 @@ fn build_output_section(
 /// GET /share/request/{token}/og-image.png
 pub async fn og_image_handler(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     Path(public_token): Path<String>,
 ) -> Result<Response, ApiError> {
-    // Derive base URL from Host header or fall back to env var / default
-    let base_host = headers
-        .get(header::HOST)
-        .and_then(|h| h.to_str().ok())
-        .map(|s| s.to_string())
-        .or_else(|| {
-            std::env::var("PUBLIC_BASE_URL")
-                .ok()
-                .map(|url| url.strip_prefix("https://").unwrap_or(&url).to_string())
-        })
-        .unwrap_or_else(|| "concordance.co".to_string());
-
     // Fetch request data
     let request_id: Option<String> = sqlx::query_scalar(
         "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
@@ -347,8 +321,6 @@ pub async fn og_image_handler(
 
     let log = fetch_log_response(&state.db_pool, &request_id).await?;
 
-    let share_url = format!("{}/share/request/{}", base_host, public_token);
-
     // Extract injection info from ForceTokens actions
     let injection = extract_injection_info(&log);
 
@@ -357,9 +329,7 @@ pub async fn og_image_handler(
         log.model_id.as_deref().unwrap_or("unknown"),
         log.max_steps,
         log.user_prompt.as_deref().unwrap_or(""),
-        log.system_prompt.as_deref(),
         log.final_text.as_deref().unwrap_or(""),
-        &share_url,
         injection,
     );
 
