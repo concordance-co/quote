@@ -31,7 +31,6 @@ Key variables:
   curl http://127.0.0.1:6767/healthz
   ```
 
-`cargo run` automatically applies SQLx migrations from `migrations/` at startup.
 
 ## Running with Docker Compose
 Build and launch the full stack:

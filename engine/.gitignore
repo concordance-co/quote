@@ -10,6 +10,8 @@ wheels/
 *.egg-info/
 *.manifest
 *.spec
+users/
+mods/
 
 # Virtual environments
 .venv/

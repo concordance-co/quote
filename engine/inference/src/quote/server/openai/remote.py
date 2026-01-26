@@ -193,58 +193,7 @@ def openai_http_app():
 
     # ---- Basic user gating and per-user mod registry persisted to volumes ----
 
-    USERS_PATH = "/users/users.json"
     MODS_BASE = "/mods"
-
-    def _ensure_parent(path: str) -> None:
-        p = _pathlib.Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-
-    def _load_users() -> set[str]:
-        try:
-            with open(USERS_PATH, "r", encoding="utf-8") as f:
-                data = _json.load(f)
-            if isinstance(data, list):
-                return {str(x) for x in data}
-            if isinstance(data, dict):
-                return set(map(str, data.keys()))
-            return set()
-        except FileNotFoundError:
-            return set()
-        except Exception:
-            return set()
-
-    def _save_users(users: set[str]) -> None:
-        _ensure_parent(USERS_PATH)
-        with open(USERS_PATH, "w", encoding="utf-8") as f:
-            _json.dump(sorted(list(users)), f)
-
-    @api.post("/add_user")
-    def add_user(body: dict = Body(...)):
-        if not isinstance(body, dict):
-            raise HTTPException(status_code=400, detail="body must be a JSON object")
-        user_api_key = body.get("user_api_key")
-        admin_key = body.get("admin_key")
-        if not isinstance(user_api_key, str) or not user_api_key.strip():
-            raise HTTPException(status_code=400, detail="user_api_key is required")
-        expected = os.environ.get("ADMIN_KEY")
-        if not isinstance(admin_key, str) or not admin_key:
-            raise HTTPException(status_code=400, detail="admin_key is required")
-        if not expected:
-            # Fail closed if ADMIN_KEY not configured
-            raise HTTPException(status_code=403, detail="admin gating not configured")
-        if admin_key != expected:
-            raise HTTPException(status_code=403, detail="invalid admin_key")
-
-        users = _load_users()
-        already_present = user_api_key in users
-        users.add(user_api_key)
-        _save_users(users)
-
-        # Ensure per-user mods directory exists
-        user_mod_dir = _pathlib.Path(MODS_BASE) / user_api_key
-        user_mod_dir.mkdir(parents=True, exist_ok=True)
-        return {"ok": True, "user": user_api_key, "existed": already_present}
 
     # Replace the existing /v1/mods route with a version that persists to /mods/<user_key>/
     # Remove prior route if present
