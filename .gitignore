@@ -14,3 +14,5 @@ target/
 **/backups/
 .pids/
 .logs/
+.vercel
+.env*.local
