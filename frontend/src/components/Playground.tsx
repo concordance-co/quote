@@ -374,8 +374,8 @@ export default function Playground() {
   );
   const [injectionPosition, setInjectionPosition] =
     useState<InjectionPosition>("phrase_replace");
-  const [tokenCount, setTokenCount] = useState<number>(10);
-  const [sentenceCount, setSentenceCount] = useState<number>(1);
+  const [tokenCount, setTokenCount] = useState<number | "">(10);
+  const [sentenceCount, setSentenceCount] = useState<number | "">(1);
   const [detectPhrases, setDetectPhrases] = useState<string[]>([
     "",
     "",
@@ -388,7 +388,7 @@ export default function Playground() {
     "",
     "",
   ]);
-  const [maxTokens, setMaxTokens] = useState<number>(256);
+  const [maxTokens, setMaxTokens] = useState<number | "">(256);
   const [temperature, setTemperature] = useState<number>(0.7);
   const [enableMod, setEnableMod] = useState<boolean>(true);
 
@@ -448,9 +448,9 @@ export default function Playground() {
       injectionPosition === "reasoning_mid" ||
       injectionPosition === "response_mid"
     ) {
-      config.token_count = tokenCount;
+      config.token_count = tokenCount === "" ? 10 : tokenCount;
     } else if (injectionPosition === "after_sentences") {
-      config.sentence_count = sentenceCount;
+      config.sentence_count = sentenceCount === "" ? 1 : sentenceCount;
     } else if (
       injectionPosition === "phrase_replace" ||
       injectionPosition === "reasoning_phrase_replace" ||
@@ -583,7 +583,7 @@ export default function Playground() {
   const buildShareableConfig = useCallback((): ShareablePlaygroundConfig => {
     const config: ShareablePlaygroundConfig = {
       model: selectedModel,
-      maxTokens,
+      maxTokens: maxTokens === "" ? 256 : maxTokens,
       temperature,
       systemPrompt,
       userPrompt,
@@ -597,10 +597,10 @@ export default function Playground() {
       config.injectionString = injectionString;
     }
     if (currentPos?.requires_token_count) {
-      config.tokenCount = tokenCount;
+      config.tokenCount = tokenCount === "" ? 10 : tokenCount;
     }
     if (currentPos?.requires_sentence_count) {
-      config.sentenceCount = sentenceCount;
+      config.sentenceCount = sentenceCount === "" ? 1 : sentenceCount;
     }
     if (currentPos?.requires_detect_phrase) {
       config.detectPhrases = detectPhrases.filter((p) => p.trim());
@@ -687,7 +687,7 @@ export default function Playground() {
         messages,
         apiKey,
         enableMod ? (modName ?? undefined) : undefined,
-        maxTokens,
+        maxTokens === "" ? 256 : maxTokens,
         temperature,
       );
       setState((prev) => ({
@@ -1009,10 +1009,14 @@ export default function Playground() {
                       value={maxTokens}
                       onChange={(e) =>
                         setMaxTokens(
-                          Math.max(
-                            1,
-                            Math.min(2048, parseInt(e.target.value) || 256),
-                          ),
+                          e.target.value === "" ? "" : parseInt(e.target.value),
+                        )
+                      }
+                      onBlur={() =>
+                        setMaxTokens((v) =>
+                          v === "" || v < 1
+                            ? 256
+                            : Math.min(2048, v),
                         )
                       }
                       disabled={isRunning}
@@ -1183,8 +1187,11 @@ export default function Playground() {
                       value={tokenCount}
                       onChange={(e) =>
                         setTokenCount(
-                          Math.max(1, parseInt(e.target.value) || 1),
+                          e.target.value === "" ? "" : parseInt(e.target.value),
                         )
+                      }
+                      onBlur={() =>
+                        setTokenCount((v) => (v === "" || v < 1 ? 10 : v))
                       }
                       disabled={isRunning || !enableMod}
                       min={1}
@@ -1203,8 +1210,11 @@ export default function Playground() {
                       value={sentenceCount}
                       onChange={(e) =>
                         setSentenceCount(
-                          Math.max(1, parseInt(e.target.value) || 1),
+                          e.target.value === "" ? "" : parseInt(e.target.value),
                         )
+                      }
+                      onBlur={() =>
+                        setSentenceCount((v) => (v === "" || v < 1 ? 1 : v))
                       }
                       disabled={isRunning || !enableMod}
                       min={1}

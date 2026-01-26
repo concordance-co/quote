@@ -427,11 +427,10 @@ def {mod_name}(event, actions, tokenizer):
                 # Backtrack and inject our content before the EOS
                 injection = "{injection_string}"
                 injection_tokens = tokenizer.encode(injection, add_special_tokens=False)
-                # Add the EOS back after our injection
-                final_tokens = injection_tokens + list(event.added_tokens)
+                # Let the model naturally generate EOS after our injection
                 return actions.backtrack(
                     steps=len(event.added_tokens),
-                    tokens=final_tokens
+                    tokens=injection_tokens
                 )
     
     return actions.noop()
@@ -593,11 +592,10 @@ def {mod_name}(event, actions, tokenizer):
             close_tag_tokens = tokenizer.encode(close_tag, add_special_tokens=False)
             injection = "{injection_string}"
             injection_tokens = tokenizer.encode(injection, add_special_tokens=False)
-            # Backtrack the </think>, inject our content, then re-add </think>
-            final_tokens = injection_tokens + close_tag_tokens
+            # Let the model naturally regenerate </think> after our injection
             return actions.backtrack(
                 steps=len(close_tag_tokens),
-                tokens=final_tokens
+                tokens=injection_tokens
             )
 
     return actions.noop()
@@ -712,10 +710,10 @@ def {mod_name}(event, actions, tokenizer):
                 st.injected = True
                 injection = "{injection_string}"
                 injection_tokens = tokenizer.encode(injection, add_special_tokens=False)
-                final_tokens = injection_tokens + list(event.added_tokens)
+                # Let the model naturally generate EOS after our injection
                 return actions.backtrack(
                     steps=len(event.added_tokens),
-                    tokens=final_tokens
+                    tokens=injection_tokens
                 )
 
     return actions.noop()
