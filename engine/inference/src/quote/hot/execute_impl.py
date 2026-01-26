@@ -395,6 +395,7 @@ def _log_mod_action(
     event_name: str,
     action: Any,
     tokenizer: Any = None,
+    added_tokens: Optional[list[int]] = None,
 ) -> None:
     if accumulator is None:
         return
@@ -408,14 +409,15 @@ def _log_mod_action(
     payload: dict[str, Any] = {}
 
     if isinstance(action, ForceTokens):
-        tokens = getattr(action, "tokens", [])
-        payload["tokens"] = list(tokens) if isinstance(tokens, (list, tuple)) else []
+        tokens = list(getattr(action, "tokens", []) or [])
+        # Prepend added_tokens if provided (for Added events)
+        if added_tokens is not None:
+            tokens = list(added_tokens) + tokens
+        payload["tokens"] = tokens
         payload["tokens_as_text"] = (
-            [tokenizer.decode([t]) for t in tokens] if tokenizer and isinstance(tokens, (list, tuple)) else []
+            [tokenizer.decode([t]) for t in tokens] if tokenizer else []
         )
-        payload["token_count"] = (
-            len(tokens) if isinstance(tokens, (list, tuple)) else None
-        )
+        payload["token_count"] = len(tokens)
     elif isinstance(action, AdjustedPrefill):
         tokens = getattr(action, "tokens", [])
         payload["tokens"] = list(tokens) if isinstance(tokens, (list, tuple)) else []
@@ -1188,6 +1190,7 @@ def execute(pipeline: TextGenerationPipeline, inputs: TextGenerationInputs):
                         event_name="Added",
                         action=action,
                         tokenizer=getattr(pipeline, "tokenizer", None),
+                        added_tokens=added_toks,
                     )
                     if isinstance(action, ForceTokens):
                         if rid not in forced_added_this_step:
