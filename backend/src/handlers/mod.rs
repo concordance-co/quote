@@ -5,5 +5,6 @@ pub mod favorites;
 pub mod health;
 pub mod ingest;
 pub mod logs;
+pub mod og;
 pub mod playground;
 pub mod tags;

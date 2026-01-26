@@ -30,9 +30,10 @@ use crate::{
         health::health_check,
         ingest::ingest_payload,
         logs::{
-            get_log, get_public_request, get_request_via_collection, list_api_keys, list_logs,
+            get_log, get_request_via_collection, list_api_keys, list_logs,
             make_request_private, make_request_public, stream_logs,
         },
+        og::{og_image_handler, share_request_with_og},
         playground::{
             generate_mod_code, generate_playground_key, run_inference, upload_mod,
         },
@@ -299,15 +300,21 @@ pub fn build_router(state: AppState) -> Router {
                 .delete(make_collection_private)
                 .options(|| async { StatusCode::NO_CONTENT }),
         )
+        // OG image route for social media previews (must come before main share route)
+        .route(
+            "/share/request/:public_token/og-image.png",
+            get(og_image_handler).options(|| async { StatusCode::NO_CONTENT }),
+        )
         // Public shareable request route (no auth required)
         // NOTE: This must come before /share/:collection_token routes to avoid "request" being matched as a token
+        // This handler detects crawlers and serves HTML with OG tags, or JSON for regular browsers
         .route(
             "/share/request/:public_token",
-            get(get_public_request).options(|| async { StatusCode::NO_CONTENT }),
+            get(share_request_with_og).options(|| async { StatusCode::NO_CONTENT }),
         )
         .route(
             "/share/request/:public_token/",
-            get(get_public_request).options(|| async { StatusCode::NO_CONTENT }),
+            get(share_request_with_og).options(|| async { StatusCode::NO_CONTENT }),
         )
         // Access request via public collection token (no auth required)
         .route(

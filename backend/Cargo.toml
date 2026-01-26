@@ -28,5 +28,11 @@ rand = "0.8"
 # HTTP client for external API calls
 reqwest = { version = "0.12", features = ["json"] }
 
+# SVG to PNG rendering for OG images
+resvg = "0.44"
+usvg = "0.44"
+tiny-skia = "0.11"
+fontdb = "0.22"
+
 [dev-dependencies]
 tower = "0.5"

@@ -133,10 +133,16 @@ export function LogShareDialog({
       const link = document.createElement("a");
       link.href = url;
       link.download = "concordance-log.png";
+      link.style.display = "none";
       document.body.appendChild(link);
+
       link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+
+      // Delay cleanup for Firefox compatibility
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
     } finally {
       setIsGenerating(false);
     }
