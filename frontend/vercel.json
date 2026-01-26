@@ -16,6 +16,21 @@
       "destination": "https://concordance--thunder-backend-thunder-server.modal.run/share/request/:token/og-image.png"
     },
     {
+      "source": "/playground",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(twitterbot|slackbot|facebookexternalhit|linkedinbot|discordbot|telegrambot|whatsapp|googlebot|bingbot|applebot|pinterest|redditbot|embedly).*"
+        }
+      ],
+      "destination": "https://concordance--thunder-backend-thunder-server.modal.run/playground"
+    },
+    {
+      "source": "/playground/og-image.png",
+      "destination": "https://concordance--thunder-backend-thunder-server.modal.run/playground/og-image.png"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://concordance--thunder-backend-thunder-server.modal.run/:path*"
     },

@@ -35,6 +35,9 @@ const PUBLIC_COLLECTIONS_CACHE_TTL: Duration = Duration::from_secs(60);
 /// TTL for discussions cache (30 seconds)
 const DISCUSSIONS_CACHE_TTL: Duration = Duration::from_secs(30);
 
+/// TTL for public token -> request_id mapping cache (5 minutes)
+const PUBLIC_TOKEN_CACHE_TTL: Duration = Duration::from_secs(300);
+
 /// Cache key for collections list (includes user filter)
 pub type CollectionsListCacheKey = Option<String>; // None = all, Some(user) = filtered
 
@@ -46,6 +49,9 @@ pub type PublicCollectionCacheKey = String; // public_token
 
 /// Cache key for discussions (request_id)
 pub type DiscussionsCacheKey = String;
+
+/// Cache key for public token -> request_id mapping
+pub type PublicTokenCacheKey = String;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -63,6 +69,8 @@ pub struct AppState {
     pub public_collection_cache: Arc<TtlCache<PublicCollectionCacheKey, String>>,
     /// Cache for discussions list responses (keyed by request_id)
     pub discussions_cache: Arc<TtlCache<DiscussionsCacheKey, String>>,
+    /// Cache for public_token -> request_id mapping
+    pub public_token_cache: Arc<TtlCache<PublicTokenCacheKey, String>>,
 }
 
 impl AppState {
@@ -82,6 +90,7 @@ impl AppState {
             collection_cache: Arc::new(TtlCache::new(COLLECTIONS_CACHE_TTL)),
             public_collection_cache: Arc::new(TtlCache::new(PUBLIC_COLLECTIONS_CACHE_TTL)),
             discussions_cache: Arc::new(TtlCache::new(DISCUSSIONS_CACHE_TTL)),
+            public_token_cache: Arc::new(TtlCache::new(PUBLIC_TOKEN_CACHE_TTL)),
         }
     }
 
@@ -101,6 +110,7 @@ impl AppState {
             collection_cache: Arc::new(TtlCache::new(COLLECTIONS_CACHE_TTL)),
             public_collection_cache: Arc::new(TtlCache::new(PUBLIC_COLLECTIONS_CACHE_TTL)),
             discussions_cache: Arc::new(TtlCache::new(DISCUSSIONS_CACHE_TTL)),
+            public_token_cache: Arc::new(TtlCache::new(PUBLIC_TOKEN_CACHE_TTL)),
         }
     }
 

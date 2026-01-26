@@ -30,13 +30,14 @@ use crate::{
         health::health_check,
         ingest::ingest_payload,
         logs::{
-            get_log, get_request_via_collection, list_api_keys, list_logs,
-            make_request_private, make_request_public, stream_logs,
+            get_log, get_request_via_collection, list_api_keys, list_logs, make_request_private,
+            make_request_public, stream_logs,
         },
-        og::{og_image_handler, share_request_with_og},
-        playground::{
-            generate_mod_code, generate_playground_key, run_inference, upload_mod,
+        og::{
+            og_image_handler, playground_og_image_handler, playground_with_og,
+            share_request_with_og,
         },
+        playground::{generate_mod_code, generate_playground_key, run_inference, upload_mod},
         tags::{add_tag, get_tags, remove_tag},
     },
     utils::AppState,
@@ -339,6 +340,19 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/v1/ingest",
             post(ingest_payload).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        // Playground OG routes (for social media previews)
+        .route(
+            "/playground/og-image.png",
+            get(playground_og_image_handler).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground",
+            get(playground_with_og).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/",
+            get(playground_with_og).options(|| async { StatusCode::NO_CONTENT }),
         )
         // Playground routes (public, no auth required)
         .route(

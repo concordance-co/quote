@@ -307,19 +307,40 @@ pub async fn og_image_handler(
     _headers: HeaderMap,
     Path(public_token): Path<String>,
 ) -> Result<Response, ApiError> {
-    // Fetch request data
-    let request_id: Option<String> = sqlx::query_scalar(
-        "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
-    )
-    .bind(&public_token)
-    .fetch_optional(&state.db_pool)
-    .await
-    .map_err(ApiError::from)?;
+    // Check public_token -> request_id cache first
+    let request_id = if let Some(cached_id) = state.public_token_cache.get(&public_token) {
+        tracing::debug!(public_token = %public_token, "Public token cache hit");
+        cached_id
+    } else {
+        tracing::debug!(public_token = %public_token, "Public token cache miss");
+        let request_id: Option<String> = sqlx::query_scalar(
+            "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
+        )
+        .bind(&public_token)
+        .fetch_optional(&state.db_pool)
+        .await
+        .map_err(ApiError::from)?;
 
-    let request_id =
-        request_id.ok_or_else(|| ApiError::NotFound("Public request not found".into()))?;
+        let request_id =
+            request_id.ok_or_else(|| ApiError::NotFound("Public request not found".into()))?;
 
-    let log = fetch_log_response(&state.db_pool, &request_id).await?;
+        // Cache the mapping
+        state
+            .public_token_cache
+            .insert(public_token.clone(), request_id.clone());
+        request_id
+    };
+
+    // Check log cache
+    let log = if let Some(cached) = state.log_cache.get(&request_id) {
+        tracing::debug!(request_id = %request_id, "OG image log cache hit");
+        cached
+    } else {
+        tracing::debug!(request_id = %request_id, "OG image log cache miss");
+        let response = fetch_log_response(&state.db_pool, &request_id).await?;
+        state.log_cache.insert(request_id.clone(), response.clone());
+        response
+    };
 
     // Extract injection info from ForceTokens actions
     let injection = extract_injection_info(&log);
@@ -398,29 +419,57 @@ pub async fn share_request_with_og(
     }
 
     // Crawlers get HTML with OG meta tags
-    let request_id: Option<String> = sqlx::query_scalar(
-        "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
-    )
-    .bind(&public_token)
-    .fetch_optional(&state.db_pool)
-    .await
-    .map_err(ApiError::from)?;
+    // Check public_token -> request_id cache first
+    let request_id = if let Some(cached_id) = state.public_token_cache.get(&public_token) {
+        tracing::debug!(public_token = %public_token, "Share page public token cache hit");
+        cached_id
+    } else {
+        tracing::debug!(public_token = %public_token, "Share page public token cache miss");
+        let request_id: Option<String> = sqlx::query_scalar(
+            "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
+        )
+        .bind(&public_token)
+        .fetch_optional(&state.db_pool)
+        .await
+        .map_err(ApiError::from)?;
 
-    let request_id =
-        request_id.ok_or_else(|| ApiError::NotFound("Public request not found".into()))?;
+        let request_id =
+            request_id.ok_or_else(|| ApiError::NotFound("Public request not found".into()))?;
 
-    let log = fetch_log_response(&state.db_pool, &request_id).await?;
+        // Cache the mapping
+        state
+            .public_token_cache
+            .insert(public_token.clone(), request_id.clone());
+        request_id
+    };
+
+    // Check log cache
+    let log = if let Some(cached) = state.log_cache.get(&request_id) {
+        tracing::debug!(request_id = %request_id, "Share page log cache hit");
+        cached
+    } else {
+        tracing::debug!(request_id = %request_id, "Share page log cache miss");
+        let response = fetch_log_response(&state.db_pool, &request_id).await?;
+        state.log_cache.insert(request_id.clone(), response.clone());
+        response
+    };
 
     let title = format!(
         "Inference Log - {}",
         log.model_id.as_deref().unwrap_or("Concordance")
     );
-    let description = log
+    // Truncate description for Twitter (max ~200 chars recommended)
+    let raw_description = log
         .user_prompt
         .as_deref()
         .unwrap_or("View this inference log on Concordance");
+    let description = truncate(raw_description, 180);
     let image_url = format!("{}/share/request/{}/og-image.png", base_url, public_token);
     let page_url = format!("{}/share/request/{}", base_url, public_token);
+    let image_alt = format!(
+        "Token Injection Lab output for {} model",
+        log.model_id.as_deref().unwrap_or("AI")
+    );
 
     let html = format!(
         r#"<!DOCTYPE html>
@@ -432,12 +481,16 @@ pub async fn share_request_with_og(
   <meta property="og:image" content="{image_url}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="628">
+  <meta property="og:image:type" content="image/png">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{page_url}">
+  <meta property="og:site_name" content="Concordance">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@concordanceai">
   <meta name="twitter:title" content="{title}">
   <meta name="twitter:description" content="{description}">
   <meta name="twitter:image" content="{image_url}">
+  <meta name="twitter:image:alt" content="{image_alt}">
   <meta http-equiv="refresh" content="0;url={page_url}">
   <script>window.location.href = "{page_url}";</script>
   <title>{title}</title>
@@ -445,9 +498,10 @@ pub async fn share_request_with_og(
 <body>Loading...</body>
 </html>"#,
         title = html_escape(&title),
-        description = html_escape(description),
-        image_url = image_url,
-        page_url = page_url
+        description = html_escape(&description),
+        image_url = html_escape(&image_url),
+        page_url = html_escape(&page_url),
+        image_alt = html_escape(&image_alt)
     );
 
     Ok(Html(html).into_response())
@@ -458,19 +512,32 @@ async fn get_public_request_json(
     State(state): State<AppState>,
     Path(public_token): Path<String>,
 ) -> Result<Json<LogResponse>, ApiError> {
-    // Find the request by public token
-    let request_id: Option<String> = sqlx::query_scalar(
-        "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
-    )
-    .bind(&public_token)
-    .fetch_optional(&state.db_pool)
-    .await
-    .map_err(ApiError::from)?;
+    // Check public_token -> request_id cache first
+    let request_id = if let Some(cached_id) = state.public_token_cache.get(&public_token) {
+        tracing::debug!(public_token = %public_token, "JSON public token cache hit");
+        cached_id
+    } else {
+        tracing::debug!(public_token = %public_token, "JSON public token cache miss");
+        let request_id: Option<String> = sqlx::query_scalar(
+            "SELECT request_id FROM requests WHERE public_token = $1 AND is_public = TRUE",
+        )
+        .bind(&public_token)
+        .fetch_optional(&state.db_pool)
+        .await
+        .map_err(ApiError::from)?;
 
-    let request_id = request_id
-        .ok_or_else(|| ApiError::NotFound("Public request not found or link has expired".into()))?;
+        let request_id = request_id.ok_or_else(|| {
+            ApiError::NotFound("Public request not found or link has expired".into())
+        })?;
 
-    // Check cache first
+        // Cache the mapping
+        state
+            .public_token_cache
+            .insert(public_token.clone(), request_id.clone());
+        request_id
+    };
+
+    // Check log cache
     if let Some(cached) = state.log_cache.get(&request_id) {
         tracing::debug!(request_id = %request_id, "Public request cache hit");
         let mut response = cached;
@@ -492,4 +559,157 @@ async fn get_public_request_json(
     response.user_api_key = None;
 
     Ok(Json(response))
+}
+
+/// Generate SVG for playground OG image
+fn generate_playground_og_svg() -> String {
+    r##"<svg width="1200" height="628" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="628" fill="#0d0d0d"/>
+
+  <!-- Decorative grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="628" fill="url(#grid)" opacity="0.5"/>
+
+  <!-- Accent glow -->
+  <ellipse cx="600" cy="314" rx="400" ry="200" fill="#34d399" opacity="0.03"/>
+
+  <!-- Header -->
+  <!-- <polygon points="40,32 60,60 20,60" fill="#34d399"/> -->
+  <text x="80" y="55" fill="#737373" font-size="20" font-family="IBM Plex Mono">Concordance</text>
+
+  <!-- Main title -->
+  <text x="600" y="260" fill="#ffffff" font-size="48" font-weight="bold" font-family="IBM Plex Mono" text-anchor="middle">Token Injection Playground</text>
+
+  <!-- Subtitle -->
+  <text x="600" y="320" fill="#34d399" font-size="28" font-family="IBM Plex Mono" text-anchor="middle">Steer models with token injection</text>
+
+  <!-- Feature badges -->
+  <rect x="280" y="380" width="180" height="44" rx="8" fill="transparent" stroke="#34d399" stroke-width="1.5"/>
+  <text x="370" y="410" fill="#34d399" font-size="16" text-anchor="middle" font-family="IBM Plex Mono">Force Tokens</text>
+
+  <rect x="510" y="380" width="180" height="44" rx="8" fill="transparent" stroke="#34d399" stroke-width="1.5"/>
+  <text x="600" y="410" fill="#34d399" font-size="16" text-anchor="middle" font-family="IBM Plex Mono">Adjust Logits</text>
+
+  <rect x="740" y="380" width="180" height="44" rx="8" fill="transparent" stroke="#34d399" stroke-width="1.5"/>
+  <text x="830" y="410" fill="#34d399" font-size="16" text-anchor="middle" font-family="IBM Plex Mono">Real-time</text>
+
+  <!-- Footer line -->
+  <line x1="40" y1="560" x2="1160" y2="560" stroke="#262626" stroke-width="1"/>
+
+  <!-- Footer text -->
+  <text x="40" y="595" fill="#34d399" font-size="16" font-family="IBM Plex Mono">research.concordance.co/playground</text>
+  <text x="1160" y="595" fill="#737373" font-size="14" text-anchor="end" font-family="IBM Plex Mono">Try it free</text>
+</svg>"##.to_string()
+}
+
+/// Generate and serve playground OG image as PNG
+///
+/// GET /playground/og-image.png
+pub async fn playground_og_image_handler() -> Result<Response, ApiError> {
+    // Generate SVG
+    let svg = generate_playground_og_svg();
+
+    // Convert SVG to PNG using resvg
+    let mut fontdb = fontdb::Database::new();
+
+    // Load IBM Plex Mono fonts (embedded in binary)
+    static IBM_PLEX_MONO_REGULAR: &[u8] =
+        include_bytes!("../../assets/fonts/IBMPlexMono-Regular.ttf");
+    static IBM_PLEX_MONO_MEDIUM: &[u8] =
+        include_bytes!("../../assets/fonts/IBMPlexMono-Medium.ttf");
+    static IBM_PLEX_MONO_SEMIBOLD: &[u8] =
+        include_bytes!("../../assets/fonts/IBMPlexMono-SemiBold.ttf");
+
+    fontdb.load_font_data(IBM_PLEX_MONO_REGULAR.to_vec());
+    fontdb.load_font_data(IBM_PLEX_MONO_MEDIUM.to_vec());
+    fontdb.load_font_data(IBM_PLEX_MONO_SEMIBOLD.to_vec());
+
+    let mut options = usvg::Options::default();
+    options.fontdb = std::sync::Arc::new(fontdb);
+
+    let tree = usvg::Tree::from_str(&svg, &options)
+        .map_err(|e| ApiError::internal(format!("Failed to parse SVG: {}", e)))?;
+
+    let pixmap_size = tree.size().to_int_size();
+    let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height())
+        .ok_or_else(|| ApiError::internal("Failed to create pixmap".to_string()))?;
+
+    resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
+
+    let png_data = pixmap
+        .encode_png()
+        .map_err(|e| ApiError::internal(format!("Failed to encode PNG: {}", e)))?;
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "image/png"),
+            (header::CACHE_CONTROL, "public, max-age=86400"),
+        ],
+        png_data,
+    )
+        .into_response())
+}
+
+/// Serve HTML with OG tags for playground page (for crawlers)
+///
+/// GET /playground
+pub async fn playground_with_og(headers: HeaderMap) -> Result<Response, ApiError> {
+    // Only serve OG HTML for crawlers
+    if !is_crawler(&headers) {
+        // For regular browsers, return a redirect or let the SPA handle it
+        // Return 404 to let Vercel fall through to the SPA
+        return Err(ApiError::NotFound("Not a crawler".into()));
+    }
+
+    // Derive base URL from Host header or fall back to default
+    let base_url = headers
+        .get(header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .map(|host| format!("https://{}", host))
+        .unwrap_or_else(|| "https://concordance.co".to_string());
+
+    let title = "Token Injection Playground - Concordance";
+    let description = "Steer LLM outputs with token injection. Force tokens, adjust logits, and explore model behavior in real-time.";
+    let image_url = format!("{}/playground/og-image.png", base_url);
+    let page_url = format!("{}/playground", base_url);
+
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta property="og:title" content="{title}">
+  <meta property="og:description" content="{description}">
+  <meta property="og:image" content="{image_url}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="628">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{page_url}">
+  <meta property="og:site_name" content="Concordance">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@concordanceai">
+  <meta name="twitter:title" content="{title}">
+  <meta name="twitter:description" content="{description}">
+  <meta name="twitter:image" content="{image_url}">
+  <meta name="twitter:image:alt" content="Concordance Token Injection Playground">
+  <meta http-equiv="refresh" content="0;url={page_url}">
+  <script>window.location.href = "{page_url}";</script>
+  <title>{title}</title>
+</head>
+<body>Loading...</body>
+</html>"#,
+        title = html_escape(title),
+        description = html_escape(description),
+        image_url = html_escape(&image_url),
+        page_url = html_escape(&page_url),
+    );
+
+    Ok(Html(html).into_response())
 }
