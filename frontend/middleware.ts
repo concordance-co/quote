@@ -36,54 +36,50 @@ const BACKEND_URL =
   "https://concordance--thunder-backend-thunder-server.modal.run";
 
 export const config = {
-  matcher: [
-    // Match share routes that need OG metadata
-    "/share/request/:path*",
-  ],
+  matcher: ["/share/request/:path*"],
 };
 
-export default async function middleware(request: Request) {
+export default async function middleware(request: Request): Promise<Response | undefined> {
   const userAgent = request.headers.get("user-agent");
-  const url = new URL(request.url);
-  const pathname = url.pathname;
 
-  // Only intercept for crawlers
+  // Regular browsers pass through to the SPA
   if (!isCrawler(userAgent)) {
-    // Let the request through to the SPA
-    return;
+    return undefined;
   }
 
   // For crawlers, proxy the request to the backend which returns HTML with OG tags
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+
   try {
     const backendUrl = new URL(pathname, BACKEND_URL);
 
-    // Forward the request to the backend
     const backendResponse = await fetch(backendUrl.toString(), {
       method: "GET",
       headers: {
         "User-Agent": userAgent || "",
         Accept: "text/html",
+        Host: url.host,
       },
     });
 
-    // If backend returns an error, let it fall through to the SPA
     if (!backendResponse.ok) {
-      return;
+      // If backend fails, let request pass through to SPA
+      return undefined;
     }
 
-    // Return the backend response (HTML with OG tags)
     const html = await backendResponse.text();
 
     return new Response(html, {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": "public, max-age=3600, s-maxage=3600",
       },
     });
   } catch (error) {
-    // On error, fall through to the SPA
-    console.error("Middleware error:", error);
-    return;
+    console.error("Middleware error proxying to backend:", error);
+    // On error, let request pass through to SPA
+    return undefined;
   }
 }
