@@ -74,6 +74,8 @@ export interface ActionCardProps {
   action: ActionLog;
   showDetails: boolean;
   onToggleDetails: () => void;
+  /** Associated event - used to filter out duplicate first token from ForceTokens display */
+  associatedEvent?: EventLog;
 }
 
 // Badge style configuration

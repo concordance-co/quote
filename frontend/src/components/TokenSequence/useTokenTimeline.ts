@@ -383,40 +383,60 @@ export function useTokenTimeline(log: LogResponse): UseTokenTimelineResult {
           tokensAction && Array.isArray(actionTokens) && actionTokens.length > 0
             ? (actionTokens as number[])
             : event.added_tokens;
-        const isForced =
-          event.forced ||
-          (tokensAction !== undefined &&
-            (tokensAction.action_type === "ForceTokens" ||
-              tokensAction.action_type === "ForceOutput"));
+
+        // Determine how many tokens from event.added_tokens were naturally added
+        // Tokens beyond this count are forced (from the ForceTokens/ForceOutput action)
+        const naturalTokenCount = event.added_tokens.length;
+        const hasForceAction =
+          tokensAction !== undefined &&
+          (tokensAction.action_type === "ForceTokens" ||
+            tokensAction.action_type === "ForceOutput");
+
+        // Helper to determine if a token at a given index is forced
+        const isTokenForced = (idx: number): boolean => {
+          if (event.forced) {
+            // If the event itself is forced, all tokens are forced
+            return true;
+          }
+          if (hasForceAction && idx >= naturalTokenCount) {
+            // Tokens beyond the natural count are forced by the action
+            return true;
+          }
+          return false;
+        };
 
         // For sampled (non-forced) tokens, look up the Sampled event at this step
         const sampledEvent = stepToSampledEvent.get(event.step);
 
         // Add new tokens
         tokensToAdd.forEach((tokenId, idx) => {
+          const forced = isTokenForced(idx);
           let tokenText: string;
 
-          if (isForced && textArray[idx]) {
+          if (forced && textArray[idx]) {
             // Forced token with per-token text from action
             tokenText = textArray[idx];
-          } else if (isForced && event.token_text) {
+          } else if (forced && event.token_text) {
             // Forced token with combined text from event
             tokenText = idx === 0 ? event.token_text : `[${tokenId}]`;
-          } else if (!isForced && sampledEvent?.token_text) {
+          } else if (!forced && sampledEvent?.token_text) {
             // Sampled token - use token_text from Sampled event
             tokenText = sampledEvent.token_text;
+          } else if (!forced && textArray[idx]) {
+            // Non-forced token but we have text from action (first token overlap case)
+            tokenText = textArray[idx];
           } else {
             // Fallback to token ID
             tokenText = `[${tokenId}]`;
           }
 
           // Get flatness, entropy, prob, kIndex, and branchiness for sampled (non-forced) tokens
-          const flatness = !isForced ? getFlatnessForStep(event.step) : null;
-          const entropy = !isForced ? getEntropyForStep(event.step) : null;
-          const { prob, kIndex } = !isForced
+          const flatness = !forced ? getFlatnessForStep(event.step) : null;
+          const entropy = !forced ? getEntropyForStep(event.step) : null;
+          const { prob, kIndex } = !forced
             ? getProbAndKIndex(event.step, tokenId)
             : { prob: null, kIndex: null };
-          const { branchiness, branchinessMetrics } = !isForced
+          const { branchiness, branchinessMetrics } = !forced
             ? getBranchinessForStep(event.step)
             : { branchiness: null, branchinessMetrics: null };
 
@@ -425,7 +445,7 @@ export function useTokenTimeline(log: LogResponse): UseTokenTimelineResult {
             token: tokenId,
             token_text: tokenText,
             step: event.step,
-            forced: isForced,
+            forced,
             erased: false,
             sequenceOrder: event.sequence_order,
             flatness,
@@ -475,9 +495,25 @@ export function useTokenTimeline(log: LogResponse): UseTokenTimelineResult {
 
       const tokenIds = ftAction.payload?.tokens as number[] | undefined;
 
+      // Check if the first forced token matches the last token in currentItems
+      // If so, it was already added via an Added event and should be treated as a normal added token
+      let startIdx = 0;
+      if (tokenIds && tokenIds.length > 0 && currentItems.length > 0) {
+        const lastItem = currentItems[currentItems.length - 1];
+        if (lastItem.type === "token" && lastItem.token === tokenIds[0]) {
+          // First forced token matches last added token - skip it (already added)
+          startIdx = 1;
+        }
+      }
+
       // Add ForceTokens tokens
       let addedAny = false;
       textArray.forEach((tokenText, idx) => {
+        // Skip tokens before startIdx (they were already added via Added event)
+        if (idx < startIdx) {
+          return;
+        }
+
         const tokenId = tokenIds?.[idx] ?? -1;
 
         currentItems.push({
@@ -528,9 +564,25 @@ export function useTokenTimeline(log: LogResponse): UseTokenTimelineResult {
 
       const tokenIds = foAction.payload?.tokens as number[] | undefined;
 
+      // Check if the first forced token matches the last token in currentItems
+      // If so, it was already added via an Added event and should be treated as a normal added token
+      let startIdx = 0;
+      if (tokenIds && tokenIds.length > 0 && currentItems.length > 0) {
+        const lastItem = currentItems[currentItems.length - 1];
+        if (lastItem.type === "token" && lastItem.token === tokenIds[0]) {
+          // First forced token matches last added token - skip it (already added)
+          startIdx = 1;
+        }
+      }
+
       // Add ForceOutput tokens
       let addedAny = false;
       textArray.forEach((tokenText, idx) => {
+        // Skip tokens before startIdx (they were already added via Added event)
+        if (idx < startIdx) {
+          return;
+        }
+
         const tokenId = tokenIds?.[idx] ?? -1;
 
         currentItems.push({

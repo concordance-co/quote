@@ -10,6 +10,7 @@ export const ActionCard = memo(function ActionCard({
   action,
   showDetails,
   onToggleDetails,
+  associatedEvent,
 }: ActionCardProps) {
   return (
     <div className="rounded border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 transition-colors">
@@ -20,7 +21,7 @@ export const ActionCard = memo(function ActionCard({
 
         <ActionBadge type={action.action_type} />
         <span className="text-xs text-foreground/80">
-          <ActionSummary action={action} />
+          <ActionSummary action={action} associatedEvent={associatedEvent} />
         </span>
 
         <button
@@ -30,7 +31,7 @@ export const ActionCard = memo(function ActionCard({
           }}
           className={cn(
             "p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ml-auto",
-            showDetails ? "bg-primary/20 text-primary" : "hover:bg-muted"
+            showDetails ? "bg-primary/20 text-primary" : "hover:bg-muted",
           )}
         >
           <Info className="h-2.5 w-2.5" />

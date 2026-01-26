@@ -1,13 +1,16 @@
 import { memo } from "react";
-import type { ActionLog } from "@/types/api";
+import type { ActionLog, EventLog } from "@/types/api";
 
 interface ActionSummaryProps {
   action: ActionLog;
+  /** Associated event - used to filter out duplicate first token from ForceTokens display */
+  associatedEvent?: EventLog;
 }
 
 // Action summary - inline description
 export const ActionSummary = memo(function ActionSummary({
   action,
+  associatedEvent,
 }: ActionSummaryProps) {
   const payload = action.payload || {};
 
@@ -15,12 +18,43 @@ export const ActionSummary = memo(function ActionSummary({
     case "ForceTokens":
     case "ForceOutput": {
       const tokensRaw = payload.tokens || payload.tokens_preview;
-      const tokens: unknown[] = Array.isArray(tokensRaw) ? tokensRaw : [];
-      const count = (payload.token_count as number) || tokens.length || 0;
+      const tokens: number[] = Array.isArray(tokensRaw) ? tokensRaw : [];
       const tokensAsTextRaw = payload.tokens_as_text;
-      const text = Array.isArray(tokensAsTextRaw)
-        ? tokensAsTextRaw.join("")
-        : (tokensAsTextRaw as string | undefined);
+      const tokensAsText: string[] = Array.isArray(tokensAsTextRaw)
+        ? tokensAsTextRaw.map(String)
+        : typeof tokensAsTextRaw === "string"
+          ? [tokensAsTextRaw]
+          : [];
+
+      // Check if first token was already added naturally (not forced) by the associated event
+      // If so, skip it from the ForceTokens display
+      let startIdx = 0;
+      if (
+        associatedEvent &&
+        associatedEvent.event_type === "Added" &&
+        !associatedEvent.forced &&
+        associatedEvent.added_tokens &&
+        associatedEvent.added_tokens.length > 0 &&
+        tokens.length > 0 &&
+        tokens[0] === associatedEvent.added_tokens[0]
+      ) {
+        startIdx = 1;
+      }
+
+      const displayTokens = tokens.slice(startIdx);
+      const displayTokensAsText = tokensAsText.slice(startIdx);
+      const count = displayTokens.length;
+      const text = displayTokensAsText.join("");
+
+      // If all tokens were filtered out, don't show anything
+      if (count === 0) {
+        return (
+          <span className="text-muted-foreground/50">
+            (token already added naturally)
+          </span>
+        );
+      }
+
       return (
         <span className="flex items-center gap-2">
           {text && (

@@ -256,6 +256,7 @@ export const TraceEntryRow = memo(
                 action={action}
                 showDetails={expandedDetails.has(`action-${action.action_id}`)}
                 onToggleDetails={createActionDetailsToggle(action.action_id)}
+                associatedEvent={event}
               />
             ))}
           </div>
