@@ -112,7 +112,7 @@ const POSITION_DEFAULTS: Record<
     userPrompt: "Tell me about SCP-055.",
     injectionString: "",
     detectPhrases: ["SCP-055"],
-    replacementPhrases: ["...wait, was was it again?"],
+    replacementPhrases: ["...wait, what was it again?"],
   },
   // Qwen 14B positions
   reasoning_start: {
@@ -167,21 +167,21 @@ const POSITION_DEFAULTS: Record<
     userPrompt: "Tell me about SCP-055.",
     injectionString: "",
     detectPhrases: ["SCP-055"],
-    replacementPhrases: ["...wait, was was it again?"],
+    replacementPhrases: ["...wait, what was it again?"],
   },
   response_phrase_replace: {
     systemPrompt: "You are a researcher at the SCP Foundation.",
     userPrompt: "Tell me about SCP-055.",
     injectionString: "",
     detectPhrases: ["SCP-055"],
-    replacementPhrases: ["...wait, was was it again?"],
+    replacementPhrases: ["...wait, what was it again?"],
   },
   full_stream_phrase_replace: {
     systemPrompt: "You are a researcher at the SCP Foundation.",
     userPrompt: "Tell me about SCP-055.",
     injectionString: "",
     detectPhrases: ["SCP-055"],
-    replacementPhrases: ["...wait, was was it again?"],
+    replacementPhrases: ["...wait, what was it again?"],
   },
 };
 
