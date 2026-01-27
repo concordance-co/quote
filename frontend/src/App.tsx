@@ -6,6 +6,7 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { ExternalLink, Key, Sparkles } from "lucide-react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -502,24 +503,26 @@ function App() {
     <AuthProvider>
       <TooltipProvider>
         <Router>
-          <Routes>
-            {/* Public routes - no auth required */}
-            <Route path="/playground" element={<PlaygroundPage />} />
-            <Route
-              path="/share/:publicToken"
-              element={<PublicCollectionView />}
-            />
-            <Route
-              path="/share/:collectionToken/request/:requestId"
-              element={<PublicCollectionRequestView />}
-            />
-            <Route
-              path="/share/request/:publicToken"
-              element={<PublicRequestView />}
-            />
-            {/* All other routes go through AppContent which handles auth */}
-            <Route path="/*" element={<AppContent />} />
-          </Routes>
+          <AnalyticsProvider>
+            <Routes>
+              {/* Public routes - no auth required */}
+              <Route path="/playground" element={<PlaygroundPage />} />
+              <Route
+                path="/share/:publicToken"
+                element={<PublicCollectionView />}
+              />
+              <Route
+                path="/share/:collectionToken/request/:requestId"
+                element={<PublicCollectionRequestView />}
+              />
+              <Route
+                path="/share/request/:publicToken"
+                element={<PublicRequestView />}
+              />
+              {/* All other routes go through AppContent which handles auth */}
+              <Route path="/*" element={<AppContent />} />
+            </Routes>
+          </AnalyticsProvider>
         </Router>
       </TooltipProvider>
     </AuthProvider>
