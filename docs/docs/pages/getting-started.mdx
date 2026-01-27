@@ -1,7 +1,7 @@
 # Getting Started
 
 ## Intro
-Concordance is a modified inference engine that allows you to ergonomically build inference-time interventions for LLMs.
+Concordance is a modified inference engine that allows you to ergonomically build inference-time interventions for LLMs. You can visit the repo on github [here](https://github.com/concordance-co/quote).
 
 The SDK is built around *Events*, *Actions*, *Mods*, and *Flows*. *Events* are emitted at important steps in the inference process (Prefill, ForwardPass, Sampled, and Added). *Actions* are responses that can steer the inference process after each *Event*. The *Actions* are AdjustPrefill, ForceTokens, AdjustLogits, ForceOutput, ForceToolCalls, and Backtrack. *Mods* are modules that ingest *Events* and return *Actions*. *Mods* can hold arbitrary state and be strung together with *Flows* to create complex inference-time steering.
 

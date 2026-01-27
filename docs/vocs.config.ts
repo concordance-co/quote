@@ -1,28 +1,38 @@
-import { defineConfig } from 'vocs'
+import { defineConfig } from "vocs";
 
 export default defineConfig({
-  title: 'Docs',
+  title: "Docs",
   sidebar: [
     {
-      text: 'Getting Started',
-      link: '/getting-started',
+      text: "Getting Started",
+      link: "/getting-started",
     },
     {
-      text: 'CLI',
-      link: '/cli',
+      text: "CLI",
+      link: "/cli",
     },
     {
-      text: 'Engine',
+      text: "Engine",
       collapsed: true,
       items: [
-        { text: 'Overview', link: '/engine' },
-        { text: 'Building Mods', link: '/engine/building-mods' },
-        { text: 'SDK', link: '/engine/sdk' },
-        { text: 'Shared Types', link: '/engine/shared' },
-        { text: 'Self Prompt', link: '/engine/self-prompt' },
-        { text: 'Strategies', link: '/engine/strategies' },
-        { text: 'Flow', link: '/engine/flow' },
+        { text: "Overview", link: "/engine" },
+        { text: "Building Mods", link: "/engine/building-mods" },
+        { text: "SDK", link: "/engine/sdk" },
+        { text: "Shared Types", link: "/engine/shared" },
+        { text: "Self Prompt", link: "/engine/self-prompt" },
+        { text: "Strategies", link: "/engine/strategies" },
+        { text: "Flow", link: "/engine/flow" },
       ],
     },
   ],
-})
+  socials: [
+    {
+      icon: "github",
+      link: "https://github.com/concordance-co/quote",
+    },
+    {
+      icon: "x",
+      link: "https://x.com/concordanceai",
+    },
+  ],
+});
