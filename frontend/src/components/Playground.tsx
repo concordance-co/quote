@@ -47,11 +47,13 @@ const MODELS = [
     id: "llama-3.1-8b",
     name: "Llama 3.1 8B",
     description: "Meta's Llama 3.1 8B Instruct model",
+    defaultMaxTokens: 256,
   },
   {
     id: "qwen-14b",
     name: "Qwen 14B",
     description: "Alibaba's Qwen 14B model",
+    defaultMaxTokens: 512,
   },
 ];
 
@@ -525,9 +527,19 @@ export default function Playground() {
 
   // Ref for auto-resizing injection string textarea
   const injectionTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [maxTokens, setMaxTokens] = useState<number | "">(256);
+  const [maxTokens, setMaxTokens] = useState<number | "">(
+    MODELS[0].defaultMaxTokens,
+  );
   const [temperature, setTemperature] = useState<number>(0.7);
   const [enableMod, setEnableMod] = useState<boolean>(true);
+
+  // Update max tokens default when model changes
+  useEffect(() => {
+    const model = MODELS.find((m) => m.id === selectedModel);
+    if (model) {
+      setMaxTokens(model.defaultMaxTokens);
+    }
+  }, [selectedModel]);
 
   // UI state
   const [showGeneratedCode, setShowGeneratedCode] = useState(false);
@@ -794,9 +806,11 @@ export default function Playground() {
 
   // Build shareable config from current state
   const buildShareableConfig = useCallback((): ShareablePlaygroundConfig => {
+    const model = MODELS.find((m) => m.id === selectedModel);
+    const defaultMaxTokens = model?.defaultMaxTokens ?? 256;
     const config: ShareablePlaygroundConfig = {
       model: selectedModel,
-      maxTokens: maxTokens === "" ? 256 : maxTokens,
+      maxTokens: maxTokens === "" ? defaultMaxTokens : maxTokens,
       temperature,
       systemPrompt,
       userPrompt,
@@ -857,6 +871,8 @@ export default function Playground() {
     try {
       // Use the persistent API key
       const apiKey = playgroundApiKey;
+      const model = MODELS.find((m) => m.id === selectedModel);
+      const defaultMaxTokens = model?.defaultMaxTokens ?? 256;
 
       let modName: string | null = null;
       let modCode: string | null = null;
@@ -900,7 +916,7 @@ export default function Playground() {
         messages,
         apiKey,
         enableMod ? (modName ?? undefined) : undefined,
-        maxTokens === "" ? 256 : maxTokens,
+        maxTokens === "" ? defaultMaxTokens : maxTokens,
         temperature,
       );
       setState((prev) => ({
@@ -1246,13 +1262,19 @@ export default function Playground() {
                         )
                       }
                       onBlur={() =>
-                        setMaxTokens((v) =>
-                          v === "" || v < 1 ? 256 : Math.min(2048, v),
-                        )
+                        setMaxTokens((v) => {
+                          const model = MODELS.find(
+                            (m) => m.id === selectedModel,
+                          );
+                          const defaultVal = model?.defaultMaxTokens ?? 256;
+                          return v === "" || v < 1
+                            ? defaultVal
+                            : Math.min(4096, v);
+                        })
                       }
                       disabled={isRunning}
                       min={1}
-                      max={2048}
+                      max={4096}
                       className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
