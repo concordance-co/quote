@@ -968,7 +968,16 @@ export default function Playground() {
                 A playground for exploring token injection — inject words,
                 concepts, or phrases directly into the LLM's generation stream
                 to steer its output trajectory. See how forced tokens affect
-                model behavior in real-time.
+                model behavior in real-time. Read our research paper{" "}
+                <a
+                  href="https://www.concordance.co/blog/token-injection-steering-llms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-500 hover:underline"
+                >
+                  here
+                </a>
+                .
               </div>
             )}
 
