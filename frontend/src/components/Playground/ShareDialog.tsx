@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { toPng } from "html-to-image";
+import { trackAnalyticsEvent } from "@/hooks/useAnalytics";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +15,7 @@ import { makeRequestPublic, makeRequestPrivate } from "@/lib/api";
 import type { ShareablePlaygroundConfig } from "@/lib/shareUtils";
 import type { LogResponse } from "@/types/api";
 import { useTokenTimeline } from "@/components/TokenSequence";
-import {
-  Download,
-  Copy,
-  Check,
-  Loader2,
-  Globe,
-  Lock,
-} from "lucide-react";
+import { Download, Copy, Check, Loader2, Globe, Lock } from "lucide-react";
 
 // Twitter/X icon component
 function XIcon({ className }: { className?: string }) {
@@ -117,18 +111,21 @@ export function ShareDialog({
     if (timeline.length === 0) return [];
     const finalSnapshot = timeline[timeline.length - 1];
     return finalSnapshot.items
-      .filter((item): item is Extract<typeof item, { type: "token" }> =>
-        item.type === "token" && !item.erased
+      .filter(
+        (item): item is Extract<typeof item, { type: "token" }> =>
+          item.type === "token" && !item.erased,
       )
-      .filter(item => {
+      .filter((item) => {
         // Filter out EOT/EOS tokens
         const text = item.token_text.toLowerCase();
-        return !text.includes('<|eot_id|>') &&
-               !text.includes('<|end|>') &&
-               !text.includes('</s>') &&
-               !text.includes('<|endoftext|>');
+        return (
+          !text.includes("<|eot_id|>") &&
+          !text.includes("<|end|>") &&
+          !text.includes("</s>") &&
+          !text.includes("<|endoftext|>")
+        );
       })
-      .map(item => ({
+      .map((item) => ({
         text: item.token_text,
         forced: item.forced,
         prob: item.prob,
@@ -230,7 +227,8 @@ export function ShareDialog({
 
   const handleShareTwitter = useCallback(() => {
     if (!shareUrl) return;
-    const tweetText = "Check out this token injection experiment on Concordance!";
+    const tweetText =
+      "Check out this token injection experiment on Concordance!";
     const params = new URLSearchParams({
       text: tweetText,
       url: shareUrl,
@@ -238,7 +236,7 @@ export function ShareDialog({
     window.open(
       `https://twitter.com/intent/tweet?${params.toString()}`,
       "_blank",
-      "noopener,noreferrer"
+      "noopener,noreferrer",
     );
   }, [shareUrl]);
 
@@ -252,9 +250,15 @@ export function ShareDialog({
       setLocalToken(response.public_token);
       onStatusChange?.(true, response.public_token);
       setShowConfirmDialog(false);
+
+      // Track share action (max 2 properties)
+      trackAnalyticsEvent("playground_shared", {
+        model: config.model,
+        mod_enabled: config.enableMod,
+      });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to make request public"
+        err instanceof Error ? err.message : "Failed to make request public",
       );
     } finally {
       setUpdating(false);
@@ -275,7 +279,7 @@ export function ShareDialog({
       onOpenChange(false);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to make request private"
+        err instanceof Error ? err.message : "Failed to make request private",
       );
     } finally {
       setUpdating(false);
@@ -299,8 +303,8 @@ export function ShareDialog({
             </DialogTitle>
             <DialogDescription>
               This will create a public link that anyone can use to view this
-              experiment. They will be able to see the prompts, injection config,
-              token sequence, and output.
+              experiment. They will be able to see the prompts, injection
+              config, token sequence, and output.
             </DialogDescription>
           </DialogHeader>
           {error && (
@@ -316,7 +320,10 @@ export function ShareDialog({
             >
               Cancel
             </Button>
-            <Button onClick={handleMakePublic} disabled={updating || !requestId}>
+            <Button
+              onClick={handleMakePublic}
+              disabled={updating || !requestId}
+            >
               {updating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

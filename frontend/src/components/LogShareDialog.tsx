@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { toPng } from "html-to-image";
+import { trackAnalyticsEvent } from "@/hooks/useAnalytics";
 import {
   Dialog,
   DialogContent,
@@ -9,18 +10,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ShareableCard, type TokenDisplayData } from "./Playground/ShareableCard";
+import {
+  ShareableCard,
+  type TokenDisplayData,
+} from "./Playground/ShareableCard";
 import { makeRequestPublic, makeRequestPrivate } from "@/lib/api";
 import type { LogResponse } from "@/types/api";
 import { useTokenTimeline } from "@/components/TokenSequence";
-import {
-  Download,
-  Copy,
-  Check,
-  Loader2,
-  Globe,
-  Lock,
-} from "lucide-react";
+import { Download, Copy, Check, Loader2, Globe, Lock } from "lucide-react";
 
 // Twitter/X icon component
 function XIcon({ className }: { className?: string }) {
@@ -56,7 +53,9 @@ export function LogShareDialog({
 
   // API flow state
   const [updating, setUpdating] = useState(false);
-  const [localToken, setLocalToken] = useState<string | null>(logData.public_token);
+  const [localToken, setLocalToken] = useState<string | null>(
+    logData.public_token,
+  );
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,18 +67,21 @@ export function LogShareDialog({
     if (timeline.length === 0) return [];
     const finalSnapshot = timeline[timeline.length - 1];
     return finalSnapshot.items
-      .filter((item): item is Extract<typeof item, { type: "token" }> =>
-        item.type === "token" && !item.erased
+      .filter(
+        (item): item is Extract<typeof item, { type: "token" }> =>
+          item.type === "token" && !item.erased,
       )
-      .filter(item => {
+      .filter((item) => {
         // Filter out EOT/EOS tokens
         const text = item.token_text.toLowerCase();
-        return !text.includes('<|eot_id|>') &&
-               !text.includes('<|end|>') &&
-               !text.includes('</s>') &&
-               !text.includes('<|endoftext|>');
+        return (
+          !text.includes("<|eot_id|>") &&
+          !text.includes("<|end|>") &&
+          !text.includes("</s>") &&
+          !text.includes("<|endoftext|>")
+        );
       })
-      .map(item => ({
+      .map((item) => ({
         text: item.token_text,
         forced: item.forced,
         prob: item.prob,
@@ -189,7 +191,7 @@ export function LogShareDialog({
     window.open(
       `https://twitter.com/intent/tweet?${params.toString()}`,
       "_blank",
-      "noopener,noreferrer"
+      "noopener,noreferrer",
     );
   }, [shareUrl]);
 
@@ -201,9 +203,15 @@ export function LogShareDialog({
       setLocalToken(response.public_token);
       onStatusChange?.(true, response.public_token);
       setShowConfirmDialog(false);
+
+      // Track share action (max 2 properties)
+      trackAnalyticsEvent("log_shared", {
+        action: "make_public",
+        token_count: logData.inference_stats?.total_tokens || 0,
+      });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to make request public"
+        err instanceof Error ? err.message : "Failed to make request public",
       );
     } finally {
       setUpdating(false);
@@ -222,7 +230,7 @@ export function LogShareDialog({
       onOpenChange(false);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to make request private"
+        err instanceof Error ? err.message : "Failed to make request private",
       );
     } finally {
       setUpdating(false);
@@ -246,7 +254,8 @@ export function LogShareDialog({
             </DialogTitle>
             <DialogDescription>
               This will create a public link that anyone can use to view this
-              log. They will be able to see the prompts, token sequence, and output.
+              log. They will be able to see the prompts, token sequence, and
+              output.
             </DialogDescription>
           </DialogHeader>
           {error && (
@@ -287,9 +296,7 @@ export function LogShareDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-mono">
-              Share Log
-            </DialogTitle>
+            <DialogTitle className="text-base font-mono">Share Log</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">

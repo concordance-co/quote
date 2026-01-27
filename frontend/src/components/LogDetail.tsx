@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
+import { trackAnalyticsEvent } from "@/hooks/useAnalytics";
 import {
   AlertTriangle,
   Zap,
@@ -319,6 +320,12 @@ export default function LogDetail({
         setDiscussionCount(data.discussion_count || 0);
         setIsPublic(data.is_public || false);
         setPublicToken(data.public_token || null);
+
+        // Track log detail view (max 2 properties)
+        trackAnalyticsEvent("log_viewed", {
+          has_trace: (data.events?.length || 0) > 0,
+          token_count: data.inference_stats?.total_tokens || 0,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load log");
       } finally {

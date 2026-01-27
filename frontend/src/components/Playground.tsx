@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { trackAnalyticsEvent } from "@/hooks/useAnalytics";
 import {
   generatePlaygroundKey,
   generateModCode,
@@ -732,9 +733,21 @@ export default function Playground() {
         setState((prev) => ({ ...prev, step: "complete" }));
       }
 
+      // Track successful inference run (max 2 properties)
+      trackAnalyticsEvent("playground_run", {
+        model: selectedModel,
+        mod_enabled: enableMod,
+      });
+
       // Refresh history after completion
       loadHistory();
     } catch (err) {
+      // Track failed inference run (max 2 properties)
+      trackAnalyticsEvent("playground_error", {
+        model: selectedModel,
+        error_type: err instanceof Error ? err.name : "unknown",
+      });
+
       setState((prev) => ({
         ...prev,
         step: "error",
