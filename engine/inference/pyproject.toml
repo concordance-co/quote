@@ -18,6 +18,9 @@ dependencies = [
     "setuptools>=80.9.0",
     "numpy>=2.3.4",
     "jsonpath-ng>=1.7.0",
+    "sae-lens>=6.30.2",
+    "transformers>=4.56.2",
+    "anthropic>=0.76.0",
 ]
 
 [project.license]

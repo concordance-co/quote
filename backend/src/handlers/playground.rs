@@ -997,6 +997,24 @@ pub struct RunInferenceRequest {
     pub max_tokens: Option<u32>,
     /// Temperature
     pub temperature: Option<f32>,
+    /// Whether to extract SAE features after inference
+    pub extract_features: Option<bool>,
+}
+
+/// A feature activation entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeatureActivation {
+    pub id: i64,
+    pub activation: f64,
+}
+
+/// A single position in the feature timeline
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeatureTimelineEntry {
+    pub position: usize,
+    pub token: i64,
+    pub token_str: String,
+    pub top_features: Vec<FeatureActivation>,
 }
 
 /// Response for running inference
@@ -1008,6 +1026,9 @@ pub struct RunInferenceResponse {
     pub request_id: Option<String>,
     /// Full response from the model server
     pub raw_response: serde_json::Value,
+    /// Feature timeline (if extract_features was true)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feature_timeline: Option<Vec<FeatureTimelineEntry>>,
 }
 
 /// Run inference on a model server
@@ -1131,11 +1152,356 @@ pub async fn run_inference(
     
     tracing::info!("Extracted request_id: {:?}", request_id);
 
+    // Optionally extract features if requested
+    let feature_timeline = if request.extract_features.unwrap_or(false) {
+        // Feature extraction is only supported for Llama models currently
+        if request.model == "llama-3.1-8b" {
+            // We need to get the token sequence - try to extract from log data
+            // For now, we'll call the feature extraction endpoint separately
+            // This is a placeholder - actual implementation would need the token IDs
+            tracing::info!("Feature extraction requested but requires separate call to /extract_features endpoint with token IDs");
+            None
+        } else {
+            tracing::info!("Feature extraction not supported for model: {}", request.model);
+            None
+        }
+    } else {
+        None
+    };
+
     Ok(Json(RunInferenceResponse {
         text,
         request_id,
         raw_response,
+        feature_timeline,
     }))
 }
 
+/// Request body for extracting features
+#[derive(Debug, Deserialize)]
+pub struct ExtractFeaturesRequest {
+    /// The model to use for feature extraction
+    pub model: String,
+    /// List of token IDs to analyze
+    pub tokens: Vec<i64>,
+    /// Number of top features to return per position (default: 20)
+    pub top_k: Option<usize>,
+    /// Layer to extract features from (default: 16)
+    pub layer: Option<usize>,
+    /// Positions where injections occurred (for before/after comparison)
+    pub injection_positions: Option<Vec<usize>>,
+}
+
+/// Response for feature extraction
+#[derive(Debug, Serialize)]
+pub struct ExtractFeaturesResponse {
+    /// Feature timeline for each position
+    pub feature_timeline: Vec<FeatureTimelineEntry>,
+    /// Before/after comparisons at injection points (if injection_positions provided)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comparisons: Option<Vec<serde_json::Value>>,
+}
+
+/// Request body for analyzing features with Claude
+#[derive(Debug, Deserialize)]
+pub struct AnalyzeFeaturesRequest {
+    /// The model (for routing to correct endpoint)
+    pub model: String,
+    /// Feature timeline from extract_features
+    pub feature_timeline: Vec<serde_json::Value>,
+    /// Positions where injections occurred
+    pub injection_positions: Option<Vec<usize>>,
+    /// Additional context about the experiment
+    pub context: Option<String>,
+    /// Layer the features were extracted from
+    pub layer: Option<usize>,
+}
+
+/// Feature with description from Neuronpedia
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FeatureWithDescription {
+    pub id: i64,
+    pub activation: f64,
+    pub description: String,
+}
+
+/// Response for feature analysis
+#[derive(Debug, Serialize)]
+pub struct AnalyzeFeaturesResponse {
+    /// Claude's analysis of the feature patterns
+    pub analysis: String,
+    /// Top features with their Neuronpedia descriptions
+    pub top_features: Vec<FeatureWithDescription>,
+}
+
+/// Extract SAE features for a token sequence
+///
+/// POST /playground/features/extract
+/// Headers:
+///   X-API-Key: <api_key>
+pub async fn extract_features(
+    headers: HeaderMap,
+    Json(request): Json<ExtractFeaturesRequest>,
+) -> Result<Json<ExtractFeaturesResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let _api_key = extract_api_key_from_headers(&headers).ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({
+                "error": "API key required",
+                "code": 401
+            })),
+        )
+    })?;
+
+    // Feature extraction is only supported for Llama models currently
+    if request.model != "llama-3.1-8b" {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": format!("Feature extraction not supported for model: {}. Only llama-3.1-8b is currently supported.", request.model),
+                "code": 400
+            })),
+        ));
+    }
+
+    let endpoints = ModelEndpoints::from_env();
+
+    let endpoint = endpoints.get_url(&request.model).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": format!("Unknown model: {}", request.model),
+                "code": 400
+            })),
+        )
+    })?;
+
+    // Call the feature extraction endpoint on the model server
+    let extract_url = format!("{}/extract_features", endpoint);
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))  // Feature extraction can take time
+        .build()
+        .unwrap_or_default();
+
+    let mut payload = serde_json::json!({
+        "tokens": request.tokens,
+    });
+
+    if let Some(top_k) = request.top_k {
+        payload["top_k"] = serde_json::json!(top_k);
+    }
+    if let Some(layer) = request.layer {
+        payload["layer"] = serde_json::json!(layer);
+    }
+    if let Some(ref injection_positions) = request.injection_positions {
+        payload["injection_positions"] = serde_json::json!(injection_positions);
+    }
+
+    tracing::info!("Calling feature extraction endpoint: {}", extract_url);
+
+    let response = client
+        .post(&extract_url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to call feature extraction: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(serde_json::json!({
+                    "error": format!("Failed to extract features: {}", e),
+                    "code": 502
+                })),
+            )
+        })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        tracing::error!("Feature extraction failed: {} - {}", status, body);
+        return Err((
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "error": format!("Feature extraction failed: {} - {}", status, body),
+                "code": 502
+            })),
+        ));
+    }
+
+    let raw_response: serde_json::Value = response.json().await.map_err(|e| {
+        (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "error": format!("Failed to parse feature extraction response: {}", e),
+                "code": 502
+            })),
+        )
+    })?;
+
+    // Parse the feature timeline from the response
+    let feature_timeline: Vec<FeatureTimelineEntry> = raw_response["feature_timeline"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|entry| {
+                    Some(FeatureTimelineEntry {
+                        position: entry["position"].as_u64()? as usize,
+                        token: entry["token"].as_i64()?,
+                        token_str: entry["token_str"].as_str()?.to_string(),
+                        top_features: entry["top_features"]
+                            .as_array()?
+                            .iter()
+                            .filter_map(|f| {
+                                Some(FeatureActivation {
+                                    id: f["id"].as_i64()?,
+                                    activation: f["activation"].as_f64()?,
+                                })
+                            })
+                            .collect(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Parse comparisons if present
+    let comparisons = raw_response["comparisons"]
+        .as_array()
+        .map(|arr| arr.clone());
+
+    Ok(Json(ExtractFeaturesResponse {
+        feature_timeline,
+        comparisons,
+    }))
+}
+
+/// Analyze SAE features using Claude
+///
+/// POST /playground/features/analyze
+/// Headers:
+///   X-API-Key: <api_key>
+pub async fn analyze_features(
+    headers: HeaderMap,
+    Json(request): Json<AnalyzeFeaturesRequest>,
+) -> Result<Json<AnalyzeFeaturesResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let _api_key = extract_api_key_from_headers(&headers).ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({
+                "error": "API key required",
+                "code": 401
+            })),
+        )
+    })?;
+
+    // Only supported for Llama models
+    if request.model != "llama-3.1-8b" {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": format!("Feature analysis not supported for model: {}", request.model),
+                "code": 400
+            })),
+        ));
+    }
+
+    let endpoints = ModelEndpoints::from_env();
+
+    let endpoint = endpoints.get_url(&request.model).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": format!("Unknown model: {}", request.model),
+                "code": 400
+            })),
+        )
+    })?;
+
+    // Call the analyze_features endpoint on the model server
+    let analyze_url = format!("{}/analyze_features", endpoint);
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .unwrap_or_default();
+
+    let mut payload = serde_json::json!({
+        "feature_timeline": request.feature_timeline,
+    });
+
+    if let Some(ref positions) = request.injection_positions {
+        payload["injection_positions"] = serde_json::json!(positions);
+    }
+    if let Some(ref context) = request.context {
+        payload["context"] = serde_json::json!(context);
+    }
+    if let Some(layer) = request.layer {
+        payload["layer"] = serde_json::json!(layer);
+    }
+
+    tracing::info!("Calling feature analysis endpoint: {}", analyze_url);
+
+    let response = client
+        .post(&analyze_url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to call feature analysis: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(serde_json::json!({
+                    "error": format!("Failed to analyze features: {}", e),
+                    "code": 502
+                })),
+            )
+        })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        tracing::error!("Feature analysis failed: {} - {}", status, body);
+        return Err((
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "error": format!("Feature analysis failed: {} - {}", status, body),
+                "code": 502
+            })),
+        ));
+    }
+
+    let raw_response: serde_json::Value = response.json().await.map_err(|e| {
+        (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "error": format!("Failed to parse analysis response: {}", e),
+                "code": 502
+            })),
+        )
+    })?;
+
+    let analysis = raw_response["analysis"]
+        .as_str()
+        .unwrap_or("No analysis available")
+        .to_string();
+
+    let top_features: Vec<FeatureWithDescription> = raw_response["top_features"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|f| {
+                    Some(FeatureWithDescription {
+                        id: f["id"].as_i64()?,
+                        activation: f["activation"].as_f64()?,
+                        description: f["description"].as_str()?.to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(Json(AnalyzeFeaturesResponse {
+        analysis,
+        top_features,
+    }))
+}
 

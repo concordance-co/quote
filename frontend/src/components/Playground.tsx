@@ -27,15 +27,20 @@ import {
   generateModCode,
   uploadMod,
   runPlaygroundInference,
+  extractFeatures,
+  analyzeFeatures,
   fetchLogDetail,
   fetchLogs,
   type InjectionPosition,
   type ModConfig,
   type ChatMessage,
+  type FeatureTimelineEntry,
+  type AnalyzeFeaturesResponse,
 } from "@/lib/api";
 import type { LogResponse } from "@/types/api";
 import { TokensView } from "@/components/LogDetail/index";
 import { ShareDialog } from "@/components/Playground/ShareDialog";
+import { FeatureTimeline } from "@/components/Playground/FeatureTimeline";
 import {
   getConfigFromUrl,
   type ShareablePlaygroundConfig,
@@ -345,6 +350,11 @@ interface PlaygroundState {
   } | null;
   logData: LogResponse | null;
   error: string | null;
+  featureTimeline: FeatureTimelineEntry[] | null;
+  extractingFeatures: boolean;
+  featureAnalysis: AnalyzeFeaturesResponse | null;
+  analyzingFeatures: boolean;
+  injectionPositions: number[];
 }
 
 // Simple Python syntax highlighting
@@ -580,6 +590,11 @@ export default function Playground() {
     inferenceResult: null,
     logData: null,
     error: null,
+    featureTimeline: null,
+    extractingFeatures: false,
+    featureAnalysis: null,
+    analyzingFeatures: false,
+    injectionPositions: [],
   });
 
   // Get current position info
@@ -866,6 +881,11 @@ export default function Playground() {
       inferenceResult: null,
       logData: null,
       error: null,
+      featureTimeline: null,
+      extractingFeatures: false,
+      featureAnalysis: null,
+      analyzingFeatures: false,
+      injectionPositions: [],
     });
 
     try {
@@ -1004,8 +1024,95 @@ export default function Playground() {
       inferenceResult: null,
       logData: null,
       error: null,
+      featureTimeline: null,
+      extractingFeatures: false,
+      featureAnalysis: null,
+      analyzingFeatures: false,
+      injectionPositions: [],
     });
   }, [playgroundApiKey]);
+
+  // Extract SAE features for the completed generation
+  const handleExtractFeatures = useCallback(async () => {
+    if (!playgroundApiKey || !state.logData?.final_tokens || selectedModel !== "llama-3.1-8b") {
+      return;
+    }
+
+    setState((prev) => ({ ...prev, extractingFeatures: true }));
+
+    try {
+      const result = await extractFeatures(
+        selectedModel,
+        state.logData.final_tokens,
+        playgroundApiKey,
+        {
+          top_k: 20,
+          layer: 16,
+          // Injection positions will be determined by FeatureTimeline using useTokenTimeline
+        },
+      );
+
+      setState((prev) => ({
+        ...prev,
+        featureTimeline: result.feature_timeline,
+        extractingFeatures: false,
+      }));
+    } catch (err) {
+      console.error("Failed to extract features:", err);
+      setState((prev) => ({ ...prev, extractingFeatures: false }));
+    }
+  }, [playgroundApiKey, state.logData, selectedModel]);
+
+  // Callback to update injection positions from FeatureTimeline
+  const handleInjectionPositions = useCallback((positions: number[]) => {
+    setState((prev) => ({ ...prev, injectionPositions: positions }));
+  }, []);
+
+  // Analyze features with Claude
+  const handleAnalyzeFeatures = useCallback(async () => {
+    if (!playgroundApiKey || !state.featureTimeline || selectedModel !== "llama-3.1-8b") {
+      return;
+    }
+
+    setState((prev) => ({ ...prev, analyzingFeatures: true }));
+
+    try {
+      // Use injection positions calculated by FeatureTimeline (using same logic as Token Sequence)
+      const injectionPositions = state.injectionPositions;
+      const promptTokenOffset = state.logData?.inference_stats?.prompt_tokens ?? 0;
+
+      // Build context string
+      const context = `User ran a token injection experiment. ${
+        injectionPositions.length > 0
+          ? `Injected tokens at positions: ${injectionPositions.join(", ")} (positions include ${promptTokenOffset} prompt tokens).`
+          : "No injections in this run."
+      } ${
+        state.logData?.user_prompt
+          ? `User prompt: "${state.logData.user_prompt.slice(0, 100)}${state.logData.user_prompt.length > 100 ? "..." : ""}"`
+          : ""
+      }`;
+
+      const result = await analyzeFeatures(
+        selectedModel,
+        state.featureTimeline,
+        playgroundApiKey,
+        {
+          injection_positions: injectionPositions.length > 0 ? injectionPositions : undefined,
+          context,
+          layer: 16,
+        },
+      );
+
+      setState((prev) => ({
+        ...prev,
+        featureAnalysis: result,
+        analyzingFeatures: false,
+      }));
+    } catch (err) {
+      console.error("Failed to analyze features:", err);
+      setState((prev) => ({ ...prev, analyzingFeatures: false }));
+    }
+  }, [playgroundApiKey, state.featureTimeline, state.logData, state.injectionPositions, selectedModel]);
 
   // Handle share status changes from ShareDialog
   const handleShareStatusChange = useCallback(
@@ -1749,6 +1856,139 @@ export default function Playground() {
                     hideUserPrompt
                     noScrollConstraints
                   />
+                </div>
+              </div>
+            )}
+
+            {/* Feature Timeline Panel */}
+            {state.logData && selectedModel === "llama-3.1-8b" && (
+              <div className="panel mt-4">
+                <div className="panel-header flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-3 w-3 text-emerald-500" />
+                    <span className="panel-title">SAE Feature Analysis</span>
+                    <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/50 rounded">
+                      Experimental
+                    </span>
+                  </span>
+                  {!state.featureTimeline && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] gap-1"
+                      onClick={handleExtractFeatures}
+                      disabled={state.extractingFeatures || !state.logData.final_tokens?.length}
+                    >
+                      {state.extractingFeatures ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Extracting...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3" />
+                          Extract Features
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <div className="p-3">
+                  {state.featureTimeline ? (
+                    <>
+                      <FeatureTimeline
+                        timeline={state.featureTimeline}
+                        log={state.logData}
+                        promptTokenCount={state.logData.inference_stats?.prompt_tokens ?? 0}
+                        onInjectionPositions={handleInjectionPositions}
+                      />
+
+                      {/* Analyze with Claude section */}
+                      <div className="mt-4 pt-4 border-t border-border">
+                        {state.featureAnalysis ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <Sparkles className="h-4 w-4 text-purple-500" />
+                              Claude's Analysis
+                            </div>
+                            <div className="text-sm text-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-4">
+                              {state.featureAnalysis.analysis}
+                            </div>
+                            {state.featureAnalysis.top_features.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium text-muted-foreground">
+                                  Top Features with Descriptions
+                                </div>
+                                <div className="grid gap-2">
+                                  {state.featureAnalysis.top_features.slice(0, 10).map((feat) => (
+                                    <div
+                                      key={feat.id}
+                                      className="flex items-start gap-2 text-xs bg-muted/20 rounded p-2"
+                                    >
+                                      <a
+                                        href={`https://www.neuronpedia.org/llama3.1-8b/16-llamascope-res-32k/${feat.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-mono text-emerald-600 hover:text-emerald-400 hover:underline shrink-0"
+                                      >
+                                        #{feat.id.toLocaleString()}
+                                      </a>
+                                      <span className="text-muted-foreground">
+                                        ({feat.activation.toFixed(1)})
+                                      </span>
+                                      <span className="text-foreground">{feat.description}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">
+                              Get Claude to analyze the feature activation patterns
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[10px] gap-1.5 border-purple-500/50 text-purple-500 hover:bg-purple-500/10"
+                              onClick={handleAnalyzeFeatures}
+                              disabled={state.analyzingFeatures}
+                            >
+                              {state.analyzingFeatures ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  Analyzing...
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="h-3 w-3" />
+                                  Analyze with Claude
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xs text-muted-foreground text-center py-4">
+                      {state.extractingFeatures ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
+                          <span>Running SAE analysis on {state.logData.final_tokens?.length} tokens...</span>
+                          <span className="text-[10px]">This may require loading the model.</span>
+                        </div>
+                      ) : state.logData.final_tokens?.length ? (
+                        <span>
+                          Click "Extract Features" to analyze SAE activations across the generation.
+                          This shows which interpretable features activate at each token position.
+                        </span>
+                      ) : (
+                        <span>Token data not available for feature extraction.</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
