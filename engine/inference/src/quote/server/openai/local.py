@@ -994,7 +994,7 @@ Focus on insights that would help someone understand what the model is "thinking
         try:
             client = anthropic.Anthropic()  # Uses ANTHROPIC_API_KEY env var
             message = client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5-20250929",
                 max_tokens=1024,
                 messages=[
                     {"role": "user", "content": prompt}
