@@ -59,10 +59,14 @@ def do_health(mode: str, base: Optional[str], exec_info_url: Optional[str]) -> i
     return 2
 
 
-def do_publish(mode: str, base: Optional[str], file_path: str) -> int:
+def do_publish(mode: str, base: Optional[str], file_path: str, admin_key: Optional[str] = None) -> int:
     b = pathlib.Path(file_path).read_bytes()
     print("local_sha256:", hashlib.sha256(b).hexdigest())
     headers = {"Content-Type": "application/octet-stream"}
+    # Add admin key header for protected endpoint
+    key = admin_key or os.environ.get("ADMIN_KEY")
+    if key:
+        headers["X-Admin-Key"] = key
     if mode == "remote-openai":
         base = base or DEFAULT_REMOTE_OPENAI_BASE
         if not base:
@@ -185,6 +189,10 @@ def main() -> None:
     p.add_argument(
         "--sdk-root", help="Path to local SDK root (default sdk/quote_mod_sdk)"
     )
+    p.add_argument(
+        "--admin-key",
+        help="Admin API key for protected endpoints (or set ADMIN_KEY env var)",
+    )
 
     a = p.parse_args()
 
@@ -210,7 +218,7 @@ def main() -> None:
         if not a.file:
             print("--file is required for publish-exec", file=sys.stderr)
             sys.exit(2)
-        sys.exit(do_publish(a.mode, a.base, a.file))
+        sys.exit(do_publish(a.mode, a.base, a.file, a.admin_key))
 
     if a.action == "publish-sdk":
         # Only supported for OpenAI-compatible servers which expose /sdk
@@ -252,6 +260,10 @@ def main() -> None:
             sys.exit(2)
         url = f"{base_url}/sdk"
         headers = {"Content-Type": "application/json"}
+        # Add admin key header for protected endpoint
+        key = a.admin_key or os.environ.get("ADMIN_KEY")
+        if key:
+            headers["X-Admin-Key"] = key
         print(f"[publish-sdk] POST {url} (files={len(source)})")
         print("source", source)
         r = requests.post(url, headers=headers, json={"source": source}, timeout=120)
