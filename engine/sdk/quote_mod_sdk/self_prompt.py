@@ -181,7 +181,6 @@ class SelfPrompt:
         self._prompt_cfg = dict(prompt or {})
         self._strategy_spec = strategy
         self._completion_cfg = completion
-        print("init completion", completion)
         self._erase_cfg = erase
         self._mask_value = float(mask_value)
         self._argmax = argmax_sampling
@@ -213,7 +212,6 @@ class SelfPrompt:
 
     def _resolve_completion_suffix(self, tokenizer: Any | None) -> List[int]:
         suffix = self._completion_cfg
-        print("suffix", suffix, _tokenize_optional(suffix, tokenizer))
         if isinstance(suffix, str) and suffix:
             if tokenizer is None:
                 raise RuntimeError("SelfPrompt requires tokenizer for completion.suffix")

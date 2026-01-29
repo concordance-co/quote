@@ -308,7 +308,7 @@ class FlowEngine(Generic[TState]):
         helper = SelfPrompt(
             prompt={"text": question.prompt},
             strategy=question.strategy,
-            completion={"suffix": question.completion_text, "force": True},
+            completion=question.completion_text,
             erase=question.erase_mode,
             mask_value=-1e9,
         )
