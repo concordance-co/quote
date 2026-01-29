@@ -183,8 +183,17 @@ def openai_http_app():
 
     @api.post("/publish_exec")
     def _publish_exec(
+        request: Request,
         content: bytes = Body(..., media_type="application/octet-stream"),
     ):
+        # Admin key gating
+        admin_key = request.headers.get("x-admin-key")
+        expected = os.environ.get("ADMIN_KEY")
+        if not expected:
+            raise HTTPException(status_code=403, detail="admin gating not configured")
+        if not admin_key or admin_key != expected:
+            raise HTTPException(status_code=403, detail="invalid or missing admin key")
+
         p = _p.Path(EXEC_PATH)
         p.write_bytes(content)
         h = hashlib.sha256(content).hexdigest()
@@ -231,6 +240,8 @@ def openai_http_app():
             if path == "/v1/mods" and "POST" in methods:
                 api.router.routes.remove(r)
             elif path == "/add_user" and "POST" in methods:
+                api.router.routes.remove(r)
+            elif path == "/sdk" and "POST" in methods:
                 api.router.routes.remove(r)
     except Exception:
         pass
@@ -318,5 +329,120 @@ def openai_http_app():
             replaced = False
 
         return {"name": name, "replaced": replaced, "description": body.get("description")}
+
+    @api.post("/sdk")
+    def update_sdk(request: Request, body: dict = Body(...)):
+        """
+        Remotely update the local SDK sources (sdk/quote_mod_sdk).
+        Protected by admin API key.
+
+        Body format:
+        {
+          "source": {"<relative_path>": "<python code>", ...}
+        }
+
+        Relative paths are resolved under sdk/quote_mod_sdk. Path traversal is rejected.
+        After writing, SDK modules are invalidated and conversation helpers rebound.
+        """
+        # Admin key gating
+        admin_key = request.headers.get("x-admin-key")
+        expected = os.environ.get("ADMIN_KEY")
+        if not expected:
+            raise HTTPException(status_code=403, detail="admin gating not configured")
+        if not admin_key or admin_key != expected:
+            raise HTTPException(status_code=403, detail="invalid or missing admin key")
+
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="body must be a JSON object")
+        source = body.get("source")
+        if not isinstance(source, dict) or not source:
+            raise HTTPException(
+                status_code=400,
+                detail="body.source must be a non-empty object {path: code}",
+            )
+
+        base = _pathlib.Path("sdk/quote_mod_sdk").resolve()
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500, detail=f"failed to create sdk dir: {exc}"
+            ) from exc
+
+        written: list[str] = []
+        file_hashes: dict[str, str] = {}
+
+        def _is_safe_path(root: _pathlib.Path, p: _pathlib.Path) -> bool:
+            try:
+                p_resolved = p.resolve()
+                return (
+                    str(p_resolved).startswith(str(root) + os.sep) or p_resolved == root
+                )
+            except Exception:
+                return False
+
+        for rel_path, code in source.items():
+            if not isinstance(rel_path, str) or not isinstance(code, str):
+                raise HTTPException(
+                    status_code=400, detail="source mapping must be {str: str}"
+                )
+            # Normalize separators and strip leading ./
+            norm = rel_path.replace("\\", "/").lstrip("./")
+            dest = base / norm
+            if not _is_safe_path(base, dest):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"refusing to write outside sdk/quote_mod_sdk: {rel_path}",
+                )
+            try:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                data = code.encode("utf-8")
+                dest.write_bytes(data)
+                written.append(norm)
+                file_hashes[norm] = hashlib.sha256(data).hexdigest()
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=500, detail=f"failed to write {rel_path}: {exc}"
+                ) from exc
+
+        try:
+            import glob
+
+            pattern = os.path.join(base, "**/*.pyc")
+            files_to_delete = glob.glob(pattern, recursive=True)
+            for file_to_delete in files_to_delete:
+                os.remove(file_to_delete)
+        except Exception:
+            pass
+
+        # Invalidate and reload sdk.quote_mod_sdk modules so future imports see new code
+        try:
+            import importlib
+            import sys as _sys
+
+            def _invalidate(prefix: str) -> None:
+                for name in list(_sys.modules.keys()):
+                    if name == prefix or name.startswith(prefix + "."):
+                        try:
+                            del _sys.modules[name]
+                        except Exception:
+                            pass
+
+            _invalidate("sdk.quote_mod_sdk")
+            _invalidate("quote_mod_sdk")  # alias used in conversation module
+            importlib.invalidate_caches()
+        except Exception:
+            # Non-fatal: file writes succeeded; module invalidation best-effort
+            pass
+
+        bundle_hash = hashlib.sha256(
+            "".join(sorted(file_hashes.values())).encode("utf-8")
+        ).hexdigest()
+        return {
+            "updated": written,
+            "file_hashes": file_hashes,
+            "bundle_hash": bundle_hash,
+            "base": str(base),
+        }
 
     return api
