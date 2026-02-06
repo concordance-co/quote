@@ -8,15 +8,51 @@
 
 use axum::{http::{StatusCode, HeaderMap}, extract::State, Json};
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, VecDeque};
 use std::env;
+use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
 
 use crate::utils::{AppState, auth::{generate_api_key, extract_api_key_from_headers}};
+
+/// Rate limiter for the analyze_features endpoint.
+/// Tracks per-API-key request timestamps in a sliding window.
+static ANALYZE_RATE_LIMITER: OnceLock<Mutex<HashMap<String, VecDeque<Instant>>>> = OnceLock::new();
+
+const RATE_LIMIT_MAX_REQUESTS: usize = 5;
+const RATE_LIMIT_WINDOW_SECS: u64 = 60;
+
+fn check_rate_limit(api_key: &str) -> Result<(), ()> {
+    let limiter = ANALYZE_RATE_LIMITER.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut map = limiter.lock().unwrap_or_else(|e| e.into_inner());
+    let timestamps = map.entry(api_key.to_string()).or_default();
+
+    let now = Instant::now();
+    let window = std::time::Duration::from_secs(RATE_LIMIT_WINDOW_SECS);
+
+    // Remove expired timestamps
+    while let Some(front) = timestamps.front() {
+        if now.duration_since(*front) > window {
+            timestamps.pop_front();
+        } else {
+            break;
+        }
+    }
+
+    if timestamps.len() >= RATE_LIMIT_MAX_REQUESTS {
+        return Err(());
+    }
+
+    timestamps.push_back(now);
+    Ok(())
+}
 
 /// Model endpoints configuration
 #[derive(Debug, Clone)]
 pub struct ModelEndpoints {
     pub qwen_14b: String,
     pub llama_8b: String,
+    pub sae: String,
 }
 
 impl ModelEndpoints {
@@ -24,6 +60,7 @@ impl ModelEndpoints {
         Self {
             qwen_14b: env::var("PLAYGROUND_QWEN_14B_URL").unwrap_or_default(),
             llama_8b: env::var("PLAYGROUND_LLAMA_8B_URL").unwrap_or_default(),
+            sae: env::var("PLAYGROUND_SAE_URL").unwrap_or_default(),
         }
     }
 
@@ -34,6 +71,10 @@ impl ModelEndpoints {
             _ => return None,
         };
         if url.is_empty() { None } else { Some(url) }
+    }
+
+    pub fn get_sae_url(&self) -> Option<&str> {
+        if self.sae.is_empty() { None } else { Some(&self.sae) }
     }
 
     pub fn get_model_id(&self, model: &str) -> Option<&str> {
@@ -1266,17 +1307,17 @@ pub async fn extract_features(
 
     let endpoints = ModelEndpoints::from_env();
 
-    let endpoint = endpoints.get_url(&request.model).ok_or_else(|| {
+    let endpoint = endpoints.get_sae_url().ok_or_else(|| {
         (
-            StatusCode::BAD_REQUEST,
+            StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({
-                "error": format!("Unknown model: {}", request.model),
-                "code": 400
+                "error": "SAE analysis service not configured",
+                "code": 503
             })),
         )
     })?;
 
-    // Call the feature extraction endpoint on the model server
+    // Call the feature extraction endpoint on the SAE server
     let extract_url = format!("{}/extract_features", endpoint);
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(120))  // Feature extraction can take time
@@ -1384,12 +1425,23 @@ pub async fn analyze_features(
     headers: HeaderMap,
     Json(request): Json<AnalyzeFeaturesRequest>,
 ) -> Result<Json<AnalyzeFeaturesResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let _api_key = extract_api_key_from_headers(&headers).ok_or_else(|| {
+    let api_key = extract_api_key_from_headers(&headers).ok_or_else(|| {
         (
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({
                 "error": "API key required",
                 "code": 401
+            })),
+        )
+    })?;
+
+    // Rate limit: 5 requests per 60s per API key
+    check_rate_limit(&api_key).map_err(|_| {
+        (
+            StatusCode::TOO_MANY_REQUESTS,
+            Json(serde_json::json!({
+                "error": "Rate limit exceeded. Max 5 analysis requests per 60 seconds.",
+                "code": 429
             })),
         )
     })?;
@@ -1407,17 +1459,17 @@ pub async fn analyze_features(
 
     let endpoints = ModelEndpoints::from_env();
 
-    let endpoint = endpoints.get_url(&request.model).ok_or_else(|| {
+    let endpoint = endpoints.get_sae_url().ok_or_else(|| {
         (
-            StatusCode::BAD_REQUEST,
+            StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({
-                "error": format!("Unknown model: {}", request.model),
-                "code": 400
+                "error": "SAE analysis service not configured",
+                "code": 503
             })),
         )
     })?;
 
-    // Call the analyze_features endpoint on the model server
+    // Call the analyze_features endpoint on the SAE server
     let analyze_url = format!("{}/analyze_features", endpoint);
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(120))
