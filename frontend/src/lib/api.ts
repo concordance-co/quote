@@ -770,10 +770,52 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface FeatureActivation {
+  id: number;
+  activation: number;
+}
+
+export interface FeatureTimelineEntry {
+  position: number;
+  token: number;
+  token_str: string;
+  top_features: FeatureActivation[];
+}
+
 export interface RunInferenceResponse {
   text: string;
   request_id: string | null;
   raw_response: Record<string, unknown>;
+  feature_timeline?: FeatureTimelineEntry[];
+}
+
+export interface ExtractFeaturesRequest {
+  model: string;
+  tokens: number[];
+  top_k?: number;
+  layer?: number;
+  injection_positions?: number[];
+}
+
+export interface ExtractFeaturesResponse {
+  feature_timeline: FeatureTimelineEntry[];
+  comparisons?: Array<{
+    position: number;
+    before?: FeatureTimelineEntry | FeatureTimelineEntry[];
+    injection: FeatureTimelineEntry;
+    after?: FeatureTimelineEntry | FeatureTimelineEntry[];
+  }>;
+}
+
+export interface FeatureWithDescription {
+  id: number;
+  activation: number;
+  description: string;
+}
+
+export interface AnalyzeFeaturesResponse {
+  analysis: string;
+  top_features: FeatureWithDescription[];
 }
 
 /**
@@ -849,6 +891,7 @@ export const runPlaygroundInference = async (
   modName?: string,
   maxTokens?: number,
   temperature?: number,
+  extractFeatures?: boolean,
 ): Promise<RunInferenceResponse> => {
   try {
     const response = await axios.post<RunInferenceResponse>(
@@ -859,11 +902,80 @@ export const runPlaygroundInference = async (
         mod_name: modName,
         max_tokens: maxTokens,
         temperature,
+        extract_features: extractFeatures,
       },
       {
         headers: {
           "X-API-Key": apiKey,
         },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+/**
+ * Extract SAE features for a token sequence
+ */
+export const extractFeatures = async (
+  model: string,
+  tokens: number[],
+  apiKey: string,
+  options?: {
+    top_k?: number;
+    layer?: number;
+    injection_positions?: number[];
+  },
+): Promise<ExtractFeaturesResponse> => {
+  try {
+    const response = await axios.post<ExtractFeaturesResponse>(
+      `${API_BASE_URL}/playground/features/extract`,
+      {
+        model,
+        tokens,
+        ...options,
+      },
+      {
+        headers: {
+          "X-API-Key": apiKey,
+        },
+        timeout: 120000, // 2 minute timeout for feature extraction
+      },
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+/**
+ * Analyze SAE features using Claude
+ */
+export const analyzeFeatures = async (
+  model: string,
+  featureTimeline: FeatureTimelineEntry[],
+  apiKey: string,
+  options?: {
+    injection_positions?: number[];
+    context?: string;
+    layer?: number;
+  },
+): Promise<AnalyzeFeaturesResponse> => {
+  try {
+    const response = await axios.post<AnalyzeFeaturesResponse>(
+      `${API_BASE_URL}/playground/features/analyze`,
+      {
+        model,
+        feature_timeline: featureTimeline,
+        ...options,
+      },
+      {
+        headers: {
+          "X-API-Key": apiKey,
+        },
+        timeout: 120000, // 2 minute timeout for analysis
       },
     );
     return response.data;

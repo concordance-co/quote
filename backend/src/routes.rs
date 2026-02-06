@@ -37,7 +37,7 @@ use crate::{
             og_image_handler, playground_og_image_handler, playground_with_og,
             share_request_with_og,
         },
-        playground::{generate_mod_code, generate_playground_key, run_inference, upload_mod},
+        playground::{analyze_features, extract_features, generate_mod_code, generate_playground_key, run_inference, upload_mod},
         tags::{add_tag, get_tags, remove_tag},
     },
     utils::AppState,
@@ -386,6 +386,24 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/playground/inference/",
             post(run_inference).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        // Feature extraction routes
+        .route(
+            "/playground/features/extract",
+            post(extract_features).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/features/extract/",
+            post(extract_features).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        // Feature analysis routes
+        .route(
+            "/playground/features/analyze",
+            post(analyze_features).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/features/analyze/",
+            post(analyze_features).options(|| async { StatusCode::NO_CONTENT }),
         )
         .with_state(state)
         .layer(CorsLayer::permissive())
