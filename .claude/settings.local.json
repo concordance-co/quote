@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "Bash(xargs:*)",
+      "Bash(cargo check:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "WebSearch",
+      "Bash(python:*)",
+      "Bash(pbcopy:*)",
+      "Bash(uv run python:*)",
+      "Bash(lsof:*)",
+      "Bash(for port in 8000 8001 8002)",
+      "Bash(do lsof -ti:$port)",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nWIP: improved search feature\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git checkout:*)",
+      "Bash(find:*)"
+    ]
+  }
+}
