@@ -58,6 +58,23 @@ make publish-remote-dev-vanilla      # or ...-mod
 
 Local servers run without Modal for fast iteration. Here are uv commands instead of `make`
 
+### 2-Minute Fullpass Debug Quickstart
+
+From `engine/inference`:
+
+```bash
+export TOKENIZERS_PARALLELISM=false
+uv run -m quote.server.openai.local --host 0.0.0.0 --port 8000
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8000/debug/fullpass
+```
+
+Use defaults in the UI (`meta-llama/Llama-3.1-8B-Instruct`, `llama_scope_lxr_8x`, layer `16`) and click **Run Fullpass**.
+
 - Start Dev server (complete/exec_info):
 
 ```
@@ -69,6 +86,15 @@ uv run -m quote.server.dev.local --host 0.0.0.0 --port 8001
 ```
 uv run -m quote.server.openai.local --host 0.0.0.0 --port 8000
 ```
+
+- Fullpass debug UI (runtime + activations):
+
+```
+# after starting local OpenAI server
+open http://127.0.0.1:8000/debug/fullpass
+```
+
+See `FULLPASS_DEBUG.md` for model/SAE selection rules, activation DB paths, and troubleshooting.
 
 - Use the router CLI (ergonomic wrapper around curl):
 

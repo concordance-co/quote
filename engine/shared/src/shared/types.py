@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from max.driver import Tensor
+try:
+    from max.driver import Tensor
+except Exception:  # pragma: no cover - fallback for non-MAX test/runtime environments
+    Tensor = Any  # type: ignore[misc, assignment]
 
 
 class ModEvent:
@@ -16,11 +19,19 @@ class Prefilled(ModEvent):
         step: int,
         max_steps: int,
         context_info: Optional[dict] = None,
+        hidden_states: Optional[Tensor] = None,
+        attention_patterns: Optional[Tensor] = None,
+        layer: Optional[int] = None,
+        input_ids: Optional[List[int]] = None,
     ) -> None:
         self.request_id = request_id
         self.step = step
         self.max_steps = max_steps
         self.context_info = context_info or {}
+        self.hidden_states = hidden_states
+        self.attention_patterns = attention_patterns
+        self.layer = layer
+        self.input_ids = list(input_ids) if input_ids is not None else None
 
 
 class ForwardPass(ModEvent):
@@ -29,10 +40,18 @@ class ForwardPass(ModEvent):
         request_id: str,
         step: int,
         logits: Tensor,
+        hidden_states: Optional[Tensor] = None,
+        attention_patterns: Optional[Tensor] = None,
+        layer: Optional[int] = None,
+        input_ids: Optional[List[int]] = None,
     ) -> None:
         self.request_id = request_id
         self.step = step
         self.logits = logits
+        self.hidden_states = hidden_states
+        self.attention_patterns = attention_patterns
+        self.layer = layer
+        self.input_ids = list(input_ids) if input_ids is not None else None
 
     def top_k_logprob(self, k):
         import numpy as np
@@ -145,6 +164,7 @@ __all__ = [
     "Noop",
     "AdjustedPrefill",
     "ForceTokens",
+    "EmitError",
     "AdjustedLogits",
     "ForceOutput",
     "ToolCalls",

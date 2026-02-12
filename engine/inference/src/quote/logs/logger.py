@@ -341,12 +341,12 @@ class IngestAccumulator:
                             if c.get("name") == collection_name:
                                 collection_id = c.get("id")
                                 found = True
-                                print(f"[COLLECTION][{self.request_id}] Found existing collection '{collection_name}' with ID {collection_id}")
+                                # print(f"[COLLECTION][{self.request_id}] Found existing collection '{collection_name}' with ID {collection_id}")
                                 break
                         
                         if not found:
                             # Collection not found, create it
-                            print(f"[COLLECTION][{self.request_id}] Collection '{collection_name}' not found, creating...")
+                            # print(f"[COLLECTION][{self.request_id}] Collection '{collection_name}' not found, creating...")
                             create_resp = requests.post(
                                 list_url,
                                 json={"name": collection_name, "created_by": self._collection_added_by},
@@ -356,32 +356,32 @@ class IngestAccumulator:
                             if create_resp.ok:
                                 create_data = create_resp.json()
                                 collection_id = create_data.get("collection", {}).get("id")
-                                print(f"[COLLECTION][{self.request_id}] Created collection '{collection_name}' with ID {collection_id}")
+                                # print(f"[COLLECTION][{self.request_id}] Created collection '{collection_name}' with ID {collection_id}")
                             else:
-                                print(f"[COLLECTION_ERROR][{self.request_id}] Failed to create collection: {create_resp.text}")
+                                # print(f"[COLLECTION_ERROR][{self.request_id}] Failed to create collection: {create_resp.text}")
                                 return
                     elif resp.status_code == 401:
-                        print(f"[COLLECTION_ERROR][{self.request_id}] Authentication required - no valid API key provided")
+                        # print(f"[COLLECTION_ERROR][{self.request_id}] Authentication required - no valid API key provided")
                         return
                     else:
-                        print(f"[COLLECTION_ERROR][{self.request_id}] Failed to list collections: {resp.status_code} {resp.text}")
+                        # print(f"[COLLECTION_ERROR][{self.request_id}] Failed to list collections: {resp.status_code} {resp.text}")
                         return
-                except Exception as e:
-                    print(f"[COLLECTION_ERROR][{self.request_id}] Failed to find/create collection: {e}")
+                except Exception:
+                    # print(f"[COLLECTION_ERROR][{self.request_id}] Failed to find/create collection: {e}")
                     return
             
             # Validate that we have a numeric collection ID
             if collection_id is None:
-                print(f"[COLLECTION_ERROR][{self.request_id}] Collection ID is None after lookup/create")
+                # print(f"[COLLECTION_ERROR][{self.request_id}] Collection ID is None after lookup/create")
                 return
             
             if isinstance(collection_id, str):
                 # Still a string - lookup/create failed to resolve to numeric ID
-                print(f"[COLLECTION_ERROR][{self.request_id}] Failed to resolve collection name '{collection_id}' to numeric ID")
+                # print(f"[COLLECTION_ERROR][{self.request_id}] Failed to resolve collection name '{collection_id}' to numeric ID")
                 return
             
             if not isinstance(collection_id, int):
-                print(f"[COLLECTION_ERROR][{self.request_id}] Invalid collection ID type: {type(collection_id)}")
+                # print(f"[COLLECTION_ERROR][{self.request_id}] Invalid collection ID type: {type(collection_id)}")
                 return
                 
             # Add request to collection
@@ -390,16 +390,20 @@ class IngestAccumulator:
                 "request_id": self.request_id,
                 "added_by": self._collection_added_by,
             }
-            print(f"[COLLECTION][POST] {add_url} - Adding request {self.request_id} to collection {collection_id}")
+            # print(f"[COLLECTION][POST] {add_url} - Adding request {self.request_id} to collection {collection_id}")
             resp = requests.post(add_url, json=payload, headers=headers, timeout=10)
             if resp.ok:
-                print(f"[COLLECTION][{self.request_id}] Added to collection {collection_id}")
+                # print(f"[COLLECTION][{self.request_id}] Added to collection {collection_id}")
+                pass
             elif resp.status_code == 401:
-                print(f"[COLLECTION_ERROR][{self.request_id}] Authentication required - no valid API key provided")
+                # print(f"[COLLECTION_ERROR][{self.request_id}] Authentication required - no valid API key provided")
+                pass
             else:
-                print(f"[COLLECTION_ERROR][{self.request_id}] Failed to add to collection: {resp.status_code} {resp.text}")
-        except Exception as e:
-            print(f"[COLLECTION_ERROR][{self.request_id}] Exception adding to collection: {e}")
+                # print(f"[COLLECTION_ERROR][{self.request_id}] Failed to add to collection: {resp.status_code} {resp.text}")
+                pass
+        except Exception:
+            # print(f"[COLLECTION_ERROR][{self.request_id}] Exception adding to collection")
+            pass
 
     # ---- Finalize ----
     def finalize(self) -> None:
@@ -414,18 +418,20 @@ class IngestAccumulator:
                 "mod_logs": self.mod_logs,
                 "actions": self.actions,
             }
-            print(f"[INGEST_PAYLOAD][{self.request_id}] {json.dumps(payload, ensure_ascii=False)}")
+            # print(f"[INGEST_PAYLOAD][{self.request_id}] {json.dumps(payload, ensure_ascii=False)}")
             try:
                 url = os.environ.get("QUOTE_LOG_INGEST_URL", "http://localhost:6767/v1/ingest")
-                print("[INGEST][POST]", url)
+                # print("[INGEST][POST]", url)
                 timeout = float(os.environ.get("QUOTE_LOG_INGEST_TIMEOUT", "25"))
                 resp = requests.post(url, json=payload, timeout=timeout)
                 if not resp.ok:
-                    print(f"[INGEST_ERROR][{self.request_id}] status={resp.status_code} body={resp.text}")
+                    # print(f"[INGEST_ERROR][{self.request_id}] status={resp.status_code} body={resp.text}")
+                    pass
                 else:
                     ingest_success = True
-            except Exception as e:
-                print(f"[INGEST_ERROR][{self.request_id}] failed to POST: {e}")
+            except Exception:
+                # print(f"[INGEST_ERROR][{self.request_id}] failed to POST")
+                pass
         except Exception:
             return
         finally:

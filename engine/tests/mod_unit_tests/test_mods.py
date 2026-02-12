@@ -12,6 +12,7 @@ Each test automatically discovers and runs mods from the corresponding directori
 import pytest
 from pathlib import Path
 from typing import Dict, Any, Callable
+import importlib
 
 from shared.types import (
     Added,
@@ -28,15 +29,20 @@ from shared.types import (
     ToolCalls,
 )
 
-from conftest import (
-    load_mod_from_file,
-    create_prefilled_event,
-    create_forward_pass_event,
-    create_added_event,
-    create_sampled_event,
-    SimpleTokenizer,
-    TestValidator,
-)
+try:
+    _cft = importlib.import_module("conftest")
+    if not hasattr(_cft, "load_mod_from_file"):
+        raise AttributeError("top-level conftest does not expose mod-unit fixtures")
+except (ModuleNotFoundError, AttributeError):
+    _cft = importlib.import_module("mod_unit_tests.conftest")
+
+load_mod_from_file = _cft.load_mod_from_file
+create_prefilled_event = _cft.create_prefilled_event
+create_forward_pass_event = _cft.create_forward_pass_event
+create_added_event = _cft.create_added_event
+create_sampled_event = _cft.create_sampled_event
+SimpleTokenizer = _cft.SimpleTokenizer
+TestValidator = _cft.TestValidator
 
 
 # Test prompts and expectations for each test type

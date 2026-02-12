@@ -53,6 +53,7 @@ htmlcov/
 inference/src/quote/logs/requests/*
 inference/src/quote/logs/failures/*
 inference/src/quote/logs/tmp*
+artifacts/
 
 # Quote hot-swap backups and local state
 src/quote/hot/backups/
