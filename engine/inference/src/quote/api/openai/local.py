@@ -631,7 +631,7 @@ def create_app(model_id: str | None = None, *, remote: bool = False) -> FastAPI:
 
     app = FastAPI(lifespan=lambda app: lifespan(app, tokenizer, resolved_model, cfg, remote))
     register_fullpass_debug_routes(app)
-    logger.info(
+    logger.warning(
         "local openai app initialized model=%s remote=%s debug_ui=%s",
         resolved_model,
         bool(remote),

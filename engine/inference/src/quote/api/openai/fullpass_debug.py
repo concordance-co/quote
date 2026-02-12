@@ -87,7 +87,7 @@ class _FullpassRuntime:
         if self._activation_cfg.enabled:
             self._activation_store = ActivationStore(self._activation_cfg)
             self._activation_store.setup()
-        logger.info(
+        logger.warning(
             "fullpass_debug runtime initialized activations_enabled=%s db_path=%s parquet_path=%s",
             self._activation_cfg.enabled,
             self._activation_cfg.db_path,
@@ -105,7 +105,7 @@ class _FullpassRuntime:
                 and self._backend_cfg.dtype == cfg.dtype
                 and self._backend_cfg.extract_attention == cfg.extract_attention
             ):
-                logger.info(
+                logger.warning(
                     "fullpass_debug backend reuse model=%s device=%s layer=%s dtype=%s",
                     cfg.model_id,
                     cfg.device,
@@ -115,11 +115,11 @@ class _FullpassRuntime:
                 return
             if self._backend is not None:
                 try:
-                    logger.info("fullpass_debug backend shutdown prior_model=%s", self._backend_cfg.model_id if self._backend_cfg else "unknown")
+                    logger.warning("fullpass_debug backend shutdown prior_model=%s", self._backend_cfg.model_id if self._backend_cfg else "unknown")
                     self._backend.shutdown()
                 except Exception:
                     pass
-            logger.info(
+            logger.warning(
                 "fullpass_debug backend load model=%s device=%s layer=%s dtype=%s attention=%s",
                 cfg.model_id,
                 cfg.device,
@@ -191,7 +191,7 @@ class _FullpassRuntime:
                 ),
             )
             sae_extractor = MinimalSAEExtractor(sae_cfg)
-            logger.info(
+            logger.warning(
                 "fullpass_debug run request_id=%s model=%s prompt_chars=%s max_tokens=%s inline_sae=1 sae_id=%s sae_layer=%s sae_top_k=%s local_sae_path=%s",
                 request_id,
                 model_id,
@@ -203,7 +203,7 @@ class _FullpassRuntime:
                 sae_cfg.sae_local_path,
             )
         else:
-            logger.info(
+            logger.warning(
                 "fullpass_debug run request_id=%s model=%s prompt_chars=%s max_tokens=%s inline_sae=%s collect_activations=%s",
                 request_id,
                 model_id,
@@ -275,7 +275,7 @@ class _FullpassRuntime:
             if len(unique_features) >= 20:
                 break
 
-        logger.info(
+        logger.warning(
             "fullpass_debug complete request_id=%s duration_ms=%s output_tokens=%s events=%s actions=%s activation_rows=%s unique_features=%s terminal_action=%s",
             request_id,
             int((time.perf_counter() - run_start) * 1000),
@@ -340,7 +340,7 @@ def register_fullpass_debug_routes(app: FastAPI) -> None:
         sae_layer: int | None = Query(default=None),
     ):
         rows = runtime.feature_deltas(request_id=request_id, feature_id=int(feature_id), sae_layer=sae_layer)
-        logger.info(
+        logger.warning(
             "fullpass_debug feature_deltas request_id=%s feature_id=%s sae_layer=%s rows=%s",
             request_id,
             int(feature_id),
