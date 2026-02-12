@@ -6,12 +6,12 @@ from uuid import uuid4
 
 import pytest
 
-from quote.activations import ActivationQueries, ActivationStore
-from quote.activations.schema import TABLE_ACTIVATION_FEATURES
+from quote.storage.activations import ActivationQueries, ActivationStore
+from quote.storage.activations.schema import TABLE_ACTIVATION_FEATURES
 from quote.backends.huggingface import HuggingFaceBackend
 from quote.backends.interface import ActivationConfig, BackendConfig, GenerationConfig, SAEConfig
-from quote.features.sae_extract import MinimalSAEExtractor
-from quote.generation import generate
+from quote.interp.sae_extract import MinimalSAEExtractor
+from quote.runtime.generation import generate
 from quote.mods.manager import ModManager
 from shared.types import ForceOutput, ForceTokens, Noop, Prefilled
 

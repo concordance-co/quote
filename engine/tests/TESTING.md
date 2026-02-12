@@ -69,7 +69,7 @@ Run the local OpenAI-compatible server:
 
 ```bash
 cd engine/inference
-uv run -m quote.server.openai.local --host 0.0.0.0 --port 8000
+uv run -m quote.api.openai.local --host 0.0.0.0 --port 8000
 ```
 
 Then open:

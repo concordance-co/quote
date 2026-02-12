@@ -13,7 +13,7 @@ From repo root:
 ```bash
 cd engine/inference
 export TOKENIZERS_PARALLELISM=false
-uv run -m quote.server.openai.local --host 0.0.0.0 --port 8000
+uv run -m quote.api.openai.local --host 0.0.0.0 --port 8000
 ```
 
 Open:

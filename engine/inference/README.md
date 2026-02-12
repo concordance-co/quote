@@ -64,7 +64,7 @@ From `engine/inference`:
 
 ```bash
 export TOKENIZERS_PARALLELISM=false
-uv run -m quote.server.openai.local --host 0.0.0.0 --port 8000
+uv run -m quote.api.openai.local --host 0.0.0.0 --port 8000
 ```
 
 Then open:
@@ -84,7 +84,7 @@ uv run -m quote.server.dev.local --host 0.0.0.0 --port 8001
 - Start OpenAI-compatible server (/v1/*):
 
 ```
-uv run -m quote.server.openai.local --host 0.0.0.0 --port 8000
+uv run -m quote.api.openai.local --host 0.0.0.0 --port 8000
 ```
 
 - Fullpass debug UI (runtime + activations):

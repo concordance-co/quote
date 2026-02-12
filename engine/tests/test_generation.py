@@ -19,7 +19,7 @@ for p in (INFERENCE_SRC, SDK_SRC, SHARED_SRC):
 
 
 from quote.backends.interface import GenerationConfig
-from quote.generation import generate
+from quote.runtime.generation import generate
 from quote.mods.manager import ModManager
 from shared.types import ForceOutput, ForceTokens, ForwardPass, Noop, Prefilled
 

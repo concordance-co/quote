@@ -15,7 +15,7 @@ if str(INFERENCE_SRC) not in sys.path:
     sys.path.insert(0, str(INFERENCE_SRC))
 
 
-from quote.activations import ActivationQueries, ActivationStore, FeatureActivationRow
+from quote.storage.activations import ActivationQueries, ActivationStore, FeatureActivationRow
 from quote.backends.interface import ActivationConfig
 
 

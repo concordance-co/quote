@@ -9,7 +9,7 @@ import pytest
 pytestmark = [pytest.mark.unit]
 
 from quote.backends.interface import SAEConfig
-from quote.features.sae_extract import MinimalSAEExtractor
+from quote.interp.sae_extract import MinimalSAEExtractor
 
 
 def _write_fake_sae_dir(path: Path) -> None:
