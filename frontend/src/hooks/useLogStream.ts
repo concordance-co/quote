@@ -9,6 +9,7 @@ const DEBUG = import.meta.env.DEV;
 // For local development: VITE_WS_URL=ws://localhost:6767
 // For production: VITE_WS_URL=wss://your-backend-server.example.com
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || "ws://localhost:6767";
+const MAX_RECONNECT_ATTEMPTS = 6;
 
 export interface UseLogStreamOptions {
   /** Whether the stream is enabled. Default: true */
@@ -123,6 +124,16 @@ export function useLogStream(
 
         // Reconnect if not a clean close and still enabled
         if (event.code !== 1000 && enabledRef.current) {
+          if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+            setError("Log stream unavailable after multiple retries");
+            if (DEBUG) {
+              console.warn(
+                `[WS] Reconnect limit reached (${MAX_RECONNECT_ATTEMPTS}), giving up`,
+              );
+            }
+            return;
+          }
+
           // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
           const delay = Math.min(
             1000 * Math.pow(2, reconnectAttempts.current),
@@ -144,7 +155,7 @@ export function useLogStream(
       };
 
       ws.onerror = (event) => {
-        console.error("[WS] Connection error:", event);
+        if (DEBUG) console.error("[WS] Connection error:", event);
         setError("Connection error");
       };
 

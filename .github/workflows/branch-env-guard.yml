@@ -1,0 +1,74 @@
+name: Branch Env Guard
+
+on:
+  pull_request:
+    branches:
+      - main
+      - staging
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Guard Environment Safety
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate branch/environment boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_BRANCH="${{ github.base_ref }}"
+          echo "Base branch: $BASE_BRANCH"
+
+          fail() {
+            echo "ERROR: $1" >&2
+            exit 1
+          }
+
+          pass() {
+            echo "PASS: $1"
+          }
+
+          # 1) Block committed secret env files (allow only example env templates)
+          tracked_env="$(git ls-files | grep -E '(^|/)\.env($|\.local$|\.development\.local$|\.test\.local$|\.production\.local$)' || true)"
+          if [[ -n "$tracked_env" ]]; then
+            fail "Tracked secret .env files detected:\n$tracked_env"
+          fi
+          pass "No tracked secret .env files"
+
+          # 2) Enforce branch-specific vercel rewrites
+          if [[ ! -f frontend/vercel.json ]]; then
+            fail "Missing frontend/vercel.json"
+          fi
+
+          api_dest="$(jq -r '.rewrites[] | select(.source=="/api/:path*") | .destination' frontend/vercel.json)"
+          if [[ -z "$api_dest" || "$api_dest" == "null" ]]; then
+            fail "Could not find /api/:path* rewrite destination in frontend/vercel.json"
+          fi
+
+          STAGING_API_DEST="https://concordance--thunder-backend-staging-thunder-server.modal.run/:path*"
+          PROD_API_DEST="https://concordance--thunder-backend-thunder-server.modal.run/:path*"
+
+          if [[ "$BASE_BRANCH" == "staging" ]]; then
+            [[ "$api_dest" == "$STAGING_API_DEST" ]] || fail "staging PR must target staging backend. Found: $api_dest"
+
+            if grep -q "concordance--thunder-backend-thunder-server.modal.run" frontend/vercel.json; then
+              fail "staging PR contains prod backend hostname in frontend/vercel.json"
+            fi
+            pass "staging rewrite points to staging backend only"
+          fi
+
+          if [[ "$BASE_BRANCH" == "main" ]]; then
+            [[ "$api_dest" == "$PROD_API_DEST" ]] || fail "main PR must target prod backend. Found: $api_dest"
+
+            if grep -q "concordance--thunder-backend-staging-thunder-server.modal.run" frontend/vercel.json; then
+              fail "main PR contains staging backend hostname in frontend/vercel.json"
+            fi
+            pass "main rewrite points to prod backend only"
+          fi
