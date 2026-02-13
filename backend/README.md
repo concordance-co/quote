@@ -41,6 +41,33 @@ docker compose up --build
 
 This starts `thunder-backend` (axum server) and `thunder-postgres`. The backend listens on `http://localhost:6767`.
 
+## Deploying to Modal
+
+`deploy.py` supports environment-targeted deploys by app name and secret name.
+
+Environment variables:
+- `MODAL_APP_NAME` (default: `thunder-backend`)
+- `MODAL_SECRET_NAME` (default: `thunder-db`)
+
+Example: staging deploy with a separate Neon-backed secret:
+
+```bash
+cd backend
+modal secret create thunder-db-staging DATABASE_URL='postgresql://...'
+MODAL_APP_NAME=thunder-backend-staging \
+MODAL_SECRET_NAME=thunder-db-staging \
+modal deploy deploy.py
+```
+
+Example: production deploy:
+
+```bash
+cd backend
+MODAL_APP_NAME=thunder-backend \
+MODAL_SECRET_NAME=thunder-db \
+modal deploy deploy.py
+```
+
 ## Development Notes
 - The health endpoint performs a lightweight `SELECT 1` to verify Postgres connectivity.
 - Logging uses `tracing`; control verbosity via `RUST_LOG` (e.g., `RUST_LOG=debug cargo run`).

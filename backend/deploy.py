@@ -2,7 +2,10 @@ import modal
 import os
 import subprocess
 
-app = modal.App("thunder-backend")
+MODAL_APP_NAME = os.environ.get("MODAL_APP_NAME", "thunder-backend")
+MODAL_SECRET_NAME = os.environ.get("MODAL_SECRET_NAME", "thunder-db")
+
+app = modal.App(MODAL_APP_NAME)
 
 image = modal.Image.from_dockerfile("dockerfile").env({
     # force a proper bind address for Modal
@@ -11,7 +14,7 @@ image = modal.Image.from_dockerfile("dockerfile").env({
 })
 
 # Secret holds DATABASE_URL (and any other sensitive vars you like)
-thunder_secret = modal.Secret.from_name("thunder-db")
+thunder_secret = modal.Secret.from_name(MODAL_SECRET_NAME)
 
 def _env_int(name: str, default: int) -> int:
     raw = os.environ.get(name)
