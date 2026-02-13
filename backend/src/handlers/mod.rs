@@ -1,3 +1,4 @@
+pub mod activation_explorer;
 pub mod auth;
 pub mod collections;
 pub mod discussions;

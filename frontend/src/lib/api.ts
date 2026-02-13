@@ -983,3 +983,203 @@ export const analyzeFeatures = async (
     return handleApiError(error);
   }
 };
+
+// Activation Explorer APIs
+
+export interface ActivationExplorerRunRequest {
+  prompt: string;
+  model_id?: string;
+  max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  top_k?: number;
+  collect_activations?: boolean;
+  inline_sae?: boolean;
+  sae_id?: string;
+  sae_layer?: number;
+  sae_top_k?: number;
+  sae_local_path?: string;
+  request_id?: string;
+}
+
+export interface ActivationExplorerRunSummary {
+  request_id: string;
+  created_at: string;
+  model_id: string;
+  prompt_chars: number;
+  output_tokens: number;
+  events_count: number;
+  actions_count: number;
+  activation_rows_count: number;
+  unique_features_count: number;
+  sae_enabled: boolean;
+  sae_id?: string | null;
+  sae_layer?: number | null;
+  duration_ms: number;
+  status: "ok" | "error";
+  error_message?: string | null;
+  top_features_preview?: unknown;
+}
+
+export interface ActivationExplorerRunResponse {
+  request_id: string;
+  status: "ok";
+  run_summary: ActivationExplorerRunSummary;
+  output: {
+    text: string;
+    token_ids: number[];
+  };
+  preview: {
+    events: Record<string, unknown>[];
+    actions: Record<string, unknown>[];
+    activation_rows: Record<string, unknown>[];
+  };
+  created_at: string;
+}
+
+export interface ActivationExplorerRunsResponse {
+  items: ActivationExplorerRunSummary[];
+  next_cursor: string | null;
+}
+
+export interface ActivationExplorerRowsResponse {
+  request_id: string;
+  row_count: number;
+  rows: Record<string, unknown>[];
+}
+
+export interface ActivationExplorerFeatureDeltasResponse {
+  request_id: string;
+  feature_id: number;
+  rows: Record<string, unknown>[];
+}
+
+export interface ActivationExplorerTopFeaturesResponse {
+  request_id: string;
+  items: Record<string, unknown>[];
+}
+
+export interface ActivationExplorerHealthResponse {
+  status: "ok" | "degraded";
+  engine_reachable: boolean;
+  index_db_reachable: boolean;
+  last_error: string | null;
+}
+
+export const runActivationExplorer = async (
+  payload: ActivationExplorerRunRequest,
+): Promise<ActivationExplorerRunResponse> => {
+  try {
+    const response = await axios.post<ActivationExplorerRunResponse>(
+      `${API_BASE_URL}/playground/activations/run`,
+      payload,
+      {
+        timeout: 240000,
+      },
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const listActivationExplorerRuns = async (params?: {
+  limit?: number;
+  cursor?: string;
+  status?: "ok" | "error";
+  model_id?: string;
+  sae_enabled?: boolean;
+}): Promise<ActivationExplorerRunsResponse> => {
+  try {
+    const response = await axios.get<ActivationExplorerRunsResponse>(
+      `${API_BASE_URL}/playground/activations/runs`,
+      { params },
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const getActivationExplorerRunSummary = async (
+  requestId: string,
+): Promise<ActivationExplorerRunSummary> => {
+  try {
+    const response = await axios.get<ActivationExplorerRunSummary>(
+      `${API_BASE_URL}/playground/activations/${encodeURIComponent(requestId)}/summary`,
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const getActivationExplorerRows = async (
+  requestId: string,
+  params?: {
+    feature_id?: number;
+    sae_layer?: number;
+    token_start?: number;
+    token_end?: number;
+    rank_max?: number;
+    limit?: number;
+  },
+): Promise<ActivationExplorerRowsResponse> => {
+  try {
+    const response = await axios.get<ActivationExplorerRowsResponse>(
+      `${API_BASE_URL}/playground/activations/${encodeURIComponent(requestId)}/rows`,
+      { params },
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const getActivationExplorerFeatureDeltas = async (
+  requestId: string,
+  params: {
+    feature_id: number;
+    sae_layer?: number;
+    limit?: number;
+  },
+): Promise<ActivationExplorerFeatureDeltasResponse> => {
+  try {
+    const response = await axios.get<ActivationExplorerFeatureDeltasResponse>(
+      `${API_BASE_URL}/playground/activations/${encodeURIComponent(requestId)}/feature-deltas`,
+      { params },
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const getActivationExplorerTopFeatures = async (
+  requestId: string,
+  params?: {
+    n?: number;
+    sae_layer?: number;
+  },
+): Promise<ActivationExplorerTopFeaturesResponse> => {
+  try {
+    const response = await axios.get<ActivationExplorerTopFeaturesResponse>(
+      `${API_BASE_URL}/playground/activations/${encodeURIComponent(requestId)}/top-features`,
+      { params },
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const getActivationExplorerHealth = async (): Promise<ActivationExplorerHealthResponse> => {
+  try {
+    const response = await axios.get<ActivationExplorerHealthResponse>(
+      `${API_BASE_URL}/playground/activations/health`,
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};

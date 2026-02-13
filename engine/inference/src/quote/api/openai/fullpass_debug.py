@@ -299,7 +299,14 @@ class _FullpassRuntime:
             "feature_ids": unique_features,
         }
 
-    def feature_deltas(self, request_id: str, feature_id: int, sae_layer: int | None = None) -> list[dict[str, Any]]:
+    def feature_deltas(
+        self,
+        request_id: str,
+        feature_id: int,
+        sae_layer: int | None = None,
+        *,
+        limit: int = 512,
+    ) -> list[dict[str, Any]]:
         if self._activation_store is None:
             return []
         queries = ActivationQueries(self._activation_cfg)
@@ -308,7 +315,53 @@ class _FullpassRuntime:
                 request_id=request_id,
                 feature_id=feature_id,
                 sae_layer=sae_layer,
-                limit=512,
+                limit=max(1, min(int(limit), 4096)),
+            )
+        finally:
+            queries.close()
+
+    def activation_rows(
+        self,
+        *,
+        request_id: str,
+        feature_id: int | None = None,
+        sae_layer: int | None = None,
+        token_start: int | None = None,
+        token_end: int | None = None,
+        rank_max: int | None = None,
+        limit: int = 500,
+    ) -> list[dict[str, Any]]:
+        if self._activation_store is None:
+            return []
+        queries = ActivationQueries(self._activation_cfg)
+        try:
+            return queries.rows_for_request(
+                request_id=request_id,
+                feature_id=feature_id,
+                sae_layer=sae_layer,
+                token_start=token_start,
+                token_end=token_end,
+                rank_max=rank_max,
+                limit=max(1, min(int(limit), 5000)),
+            )
+        finally:
+            queries.close()
+
+    def top_features(
+        self,
+        *,
+        request_id: str,
+        n: int = 50,
+        sae_layer: int | None = None,
+    ) -> list[dict[str, Any]]:
+        if self._activation_store is None:
+            return []
+        queries = ActivationQueries(self._activation_cfg)
+        try:
+            return queries.top_features_for_request(
+                request_id=request_id,
+                n=max(1, min(int(n), 500)),
+                sae_layer=sae_layer,
             )
         finally:
             queries.close()
@@ -338,8 +391,14 @@ def register_fullpass_debug_routes(app: FastAPI) -> None:
         request_id: str = Query(...),
         feature_id: int = Query(...),
         sae_layer: int | None = Query(default=None),
+        limit: int = Query(default=512),
     ):
-        rows = runtime.feature_deltas(request_id=request_id, feature_id=int(feature_id), sae_layer=sae_layer)
+        rows = runtime.feature_deltas(
+            request_id=request_id,
+            feature_id=int(feature_id),
+            sae_layer=sae_layer,
+            limit=limit,
+        )
         logger.warning(
             "fullpass_debug feature_deltas request_id=%s feature_id=%s sae_layer=%s rows=%s",
             request_id,
@@ -351,6 +410,57 @@ def register_fullpass_debug_routes(app: FastAPI) -> None:
             "request_id": request_id,
             "feature_id": int(feature_id),
             "rows": rows,
+        }
+
+    @app.get("/debug/fullpass/activations")
+    async def debug_fullpass_activations(
+        request_id: str = Query(...),
+        feature_id: int | None = Query(default=None),
+        sae_layer: int | None = Query(default=None),
+        token_start: int | None = Query(default=None),
+        token_end: int | None = Query(default=None),
+        rank_max: int | None = Query(default=None),
+        limit: int = Query(default=500),
+    ):
+        rows = runtime.activation_rows(
+            request_id=request_id,
+            feature_id=feature_id,
+            sae_layer=sae_layer,
+            token_start=token_start,
+            token_end=token_end,
+            rank_max=rank_max,
+            limit=limit,
+        )
+        logger.warning(
+            "fullpass_debug activations request_id=%s rows=%s feature_id=%s sae_layer=%s",
+            request_id,
+            len(rows),
+            feature_id,
+            sae_layer,
+        )
+        return {
+            "request_id": request_id,
+            "row_count": len(rows),
+            "rows": rows,
+        }
+
+    @app.get("/debug/fullpass/top-features")
+    async def debug_fullpass_top_features(
+        request_id: str = Query(...),
+        n: int = Query(default=50),
+        sae_layer: int | None = Query(default=None),
+    ):
+        items = runtime.top_features(request_id=request_id, n=n, sae_layer=sae_layer)
+        logger.warning(
+            "fullpass_debug top_features request_id=%s n=%s rows=%s sae_layer=%s",
+            request_id,
+            n,
+            len(items),
+            sae_layer,
+        )
+        return {
+            "request_id": request_id,
+            "items": items,
         }
 
 

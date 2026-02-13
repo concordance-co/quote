@@ -11,6 +11,10 @@ use crate::utils::body_limit::{MAX_BODY_SIZE, body_limit_middleware};
 
 use crate::{
     handlers::{
+        activation_explorer::{
+            activation_health, get_activation_rows, get_activation_run_summary, get_feature_deltas,
+            get_top_features, list_activation_runs, run_activation,
+        },
         auth::{
             bootstrap_admin_key, create_api_key, get_current_user, list_api_keys as list_auth_keys,
             revoke_api_key, update_api_key, validate_key,
@@ -37,7 +41,10 @@ use crate::{
             og_image_handler, playground_og_image_handler, playground_with_og,
             share_request_with_og,
         },
-        playground::{analyze_features, extract_features, generate_mod_code, generate_playground_key, run_inference, upload_mod},
+        playground::{
+            analyze_features, extract_features, generate_mod_code, generate_playground_key,
+            run_inference, upload_mod,
+        },
         tags::{add_tag, get_tags, remove_tag},
     },
     utils::AppState,
@@ -405,6 +412,59 @@ pub fn build_router(state: AppState) -> Router {
             "/playground/features/analyze/",
             post(analyze_features).options(|| async { StatusCode::NO_CONTENT }),
         )
+        // Activation explorer routes (local-first, no auth for v0)
+        .route(
+            "/playground/activations/run",
+            post(run_activation).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/runs",
+            get(list_activation_runs).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/runs/",
+            get(list_activation_runs).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/health",
+            get(activation_health).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/health/",
+            get(activation_health).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/summary",
+            get(get_activation_run_summary).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/summary/",
+            get(get_activation_run_summary).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/rows",
+            get(get_activation_rows).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/rows/",
+            get(get_activation_rows).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/feature-deltas",
+            get(get_feature_deltas).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/feature-deltas/",
+            get(get_feature_deltas).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/top-features",
+            get(get_top_features).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/:request_id/top-features/",
+            get(get_top_features).options(|| async { StatusCode::NO_CONTENT }),
+        )
         .with_state(state)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
@@ -469,6 +529,42 @@ mod tests {
             .expect("router should respond");
 
         assert_ne!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    #[tokio::test]
+    async fn activation_explorer_routes_are_registered() {
+        let pool = PgPoolOptions::new()
+            .max_connections(1)
+            .connect_lazy("postgres://postgres:postgres@localhost:5432/postgres")
+            .expect("valid postgres connection string");
+
+        let state = AppState::new(pool);
+        let app = build_router(state);
+
+        let response_runs = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("OPTIONS")
+                    .uri("/playground/activations/runs")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .expect("router should respond");
+        assert_ne!(response_runs.status(), StatusCode::METHOD_NOT_ALLOWED);
+
+        let response_run = app
+            .oneshot(
+                Request::builder()
+                    .method("OPTIONS")
+                    .uri("/playground/activations/run")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .expect("router should respond");
+        assert_ne!(response_run.status(), StatusCode::METHOD_NOT_ALLOWED);
     }
 
     #[tokio::test]

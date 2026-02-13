@@ -7,7 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
-import { ExternalLink, Key, Sparkles } from "lucide-react";
+import { Activity, ExternalLink, Key, Sparkles } from "lucide-react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import PublicCollectionView from "@/components/PublicCollectionView";
 import PublicCollectionRequestView from "@/components/PublicCollectionRequestView";
 import PublicRequestView from "@/components/PublicRequestView";
 import Playground from "@/components/Playground";
+import ActivationExplorer from "@/components/ActivationExplorer";
 import CollectionsSidebar, {
   type FilterType,
 } from "@/components/CollectionsSidebar";
@@ -426,6 +427,17 @@ function PlaygroundPage() {
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 text-xs px-2 shrink-0 gap-1"
+              asChild
+            >
+              <Link to="/playground/activations">
+                <Activity className="h-3 w-3" />
+                Activations
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-7 text-xs px-2 shrink-0"
               asChild
             >
@@ -498,6 +510,118 @@ function PlaygroundPage() {
   );
 }
 
+function ActivationExplorerPage() {
+  const { user, logout } = useAuth();
+
+  return (
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="container flex flex-wrap gap-2 py-2 max-w-7xl items-center min-h-10">
+          <Link to="/" className="flex items-center gap-2 mr-2 shrink-0">
+            <img
+              src="/elvis-logo.png"
+              alt="Concordance"
+              className="w-6 h-6 object-contain"
+            />
+            <span className="font-semibold text-sm whitespace-nowrap">
+              Concordance
+            </span>
+          </Link>
+
+          <nav className="flex items-center gap-1 flex-1 min-w-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs px-2 shrink-0 gap-1"
+              asChild
+            >
+              <Link to="/playground">
+                <Sparkles className="h-3 w-3" />
+                Playground
+              </Link>
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-7 text-xs px-2 shrink-0 gap-1"
+              asChild
+            >
+              <Link to="/playground/activations">
+                <Activity className="h-3 w-3" />
+                Activations
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs px-2 shrink-0"
+              asChild
+            >
+              <Link to="/">Logs</Link>
+            </Button>
+          </nav>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs px-2"
+              asChild
+            >
+              <a
+                href="https://docs.concordance.co"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1"
+              >
+                Docs
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </Button>
+            <GitHubStarButton />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs px-2"
+              asChild
+            >
+              <a
+                href="/api/health"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1"
+              >
+                API
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </Button>
+            {user && (
+              <UserMenu
+                onLogout={logout}
+                userName={user.name}
+                isAdmin={user.isAdmin}
+              />
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 py-4 overflow-auto">
+        <ActivationExplorer />
+      </main>
+
+      <footer className="border-t border-border shrink-0">
+        <div className="container flex items-center justify-between h-7 max-w-7xl text-2xs text-muted-foreground">
+          <span>Concordance v1.0</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -507,6 +631,10 @@ function App() {
             <Routes>
               {/* Public routes - no auth required */}
               <Route path="/playground" element={<PlaygroundPage />} />
+              <Route
+                path="/playground/activations"
+                element={<ActivationExplorerPage />}
+              />
               <Route
                 path="/share/:publicToken"
                 element={<PublicCollectionView />}
