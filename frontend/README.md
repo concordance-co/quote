@@ -178,6 +178,10 @@ The project includes configuration for Vercel deployment (`vercel.json`). For ot
 3. Configure environment variables on your hosting platform
 4. Ensure proper routing for SPA (redirect all routes to `index.html`)
 
+Vercel note:
+- `vercel.json` includes host-based staging rewrites that route hosts matching `staging` or `git-staging` to the staging Modal backend.
+- If your staging custom domain does not include `staging`, update the `host` regex in `vercel.json` accordingly.
+
 ## API Integration
 
 The frontend expects a Concordance-compatible backend with the following endpoints:
