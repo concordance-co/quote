@@ -9,9 +9,6 @@ and Claude-powered analysis.
 import os
 
 import modal
-from dotenv import load_dotenv
-
-load_dotenv()
 
 cuda_version = "12.8.0"
 flavor = "cudnn-devel"

@@ -2,10 +2,7 @@ import hashlib
 import os
 
 import modal
-from dotenv import load_dotenv
 import sys
-
-load_dotenv()
 
 # Keep image/env/volumes identical to prior implementation to avoid behavioral changes
 cuda_version = "12.8.0"

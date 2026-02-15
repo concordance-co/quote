@@ -30,9 +30,6 @@ from quote.pipelines.text_gen_pipeline import TextGenerationPipeline
 from quote.mods.manager import ModManager
 from shared.types import ModAction, ModEvent
 from shared.conversation import clear_conversation
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Path used by local servers for hot-swapped execute() contents.
 # Default to the packaged implementation so installed wheels work without repo files.
