@@ -1061,8 +1061,9 @@ export interface ActivationExplorerTopFeaturesResponse {
 
 export interface ActivationExplorerHealthResponse {
   status: "ok" | "degraded";
-  engine_reachable: boolean;
   index_db_reachable: boolean;
+  hf_inference_reachable: boolean;
+  sae_reachable: boolean;
   last_error: string | null;
 }
 
