@@ -71,7 +71,19 @@ from ..core import (
     make_maybe_reload_exec,
     write_default_exec_if_missing,
 )
-from .fullpass_debug import register_fullpass_debug_routes
+
+
+def _maybe_register_fullpass_debug_routes(app: FastAPI) -> None:
+    # Fullpass debug is heavy (HF backend + activation storage) and is not needed for
+    # normal OpenAI-compatible serving. Keep it opt-in to avoid dragging extra deps
+    # into deployed environments.
+    raw = os.environ.get("CONCORDANCE_ENABLE_FULLPASS_DEBUG", "")
+    enabled = raw.strip().lower() in {"1", "true", "yes", "on"}
+    if not enabled:
+        return
+    from .fullpass_debug import register_fullpass_debug_routes
+
+    register_fullpass_debug_routes(app)
 
 
 USERS_PATH = os.environ.get("USERS_PATH") or "./users/users.json"
@@ -630,7 +642,7 @@ def create_app(model_id: str | None = None, *, remote: bool = False) -> FastAPI:
     )
 
     app = FastAPI(lifespan=lambda app: lifespan(app, tokenizer, resolved_model, cfg, remote))
-    register_fullpass_debug_routes(app)
+    _maybe_register_fullpass_debug_routes(app)
     logger.warning(
         "local openai app initialized model=%s remote=%s debug_ui=%s",
         resolved_model,

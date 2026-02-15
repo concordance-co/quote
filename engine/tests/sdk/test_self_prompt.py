@@ -68,7 +68,7 @@ def test_self_prompt_forces_prompt_and_masks_allowed():
     sp.handle_prefilled(pre2, tok)
     a2 = sp.handle_forward_pass(fwd2, ActionBuilder(fwd2), tok)
     assert isinstance(a2, AdjustedLogits)
-    sp.handle_added(AddedEvent(pre.request_id, 4, [ord("A")], 3, False), ActionBuilder(fwd2), tok)
+    sp.handle_added(AddedEvent(pre.request_id, 4, [ord("A")], False), ActionBuilder(fwd2), tok)
     # No specific assertion after add; ensure no exceptions
 
 
@@ -89,12 +89,12 @@ def test_self_prompt_erase_modes_prompt_and_all(with_completion: bool):
     sp_prompt.handle_prefilled(pre, tok)
     # Cycle 1: Forward -> Added prompt
     _ = sp_prompt.handle_forward_pass(fwd, actions, tok)
-    sp_prompt.handle_added(AddedEvent(pre.request_id, 1, [ord("Q"), ord(":")], 2, True), actions, tok)
+    sp_prompt.handle_added(AddedEvent(pre.request_id, 1, [ord("Q"), ord(":")], True), actions, tok)
     # Cycle 2: Prefill -> Forward -> Added answer
     pre_a, fwd_a = _build_events("req-3", step=2, tokens_len=2)
     sp_prompt.handle_prefilled(pre_a, tok)
     _ = sp_prompt.handle_forward_pass(fwd_a, ActionBuilder(fwd_a), tok)
-    sp_prompt.handle_added(AddedEvent(pre.request_id, 2, [ord("Y")], 3, False), ActionBuilder(fwd_a), tok)
+    sp_prompt.handle_added(AddedEvent(pre.request_id, 2, [ord("Y")], False), ActionBuilder(fwd_a), tok)
 
     # Cycle 3: Prefill -> Forward (depends on completion)
     pre_b, fwd_b = _build_events("req-3", step=3, tokens_len=3)
@@ -105,7 +105,7 @@ def test_self_prompt_erase_modes_prompt_and_all(with_completion: bool):
         assert isinstance(res, ForceTokens)
         # Simulate suffix being added as forced (Cycle 3 Added)
         sp_prompt.handle_added(
-            AddedEvent(pre.request_id, 3, [ord("\n")], 4, True), ActionBuilder(fwd_b), tok
+            AddedEvent(pre.request_id, 3, [ord("\n")], True), ActionBuilder(fwd_b), tok
         )
         # Cycle 4: Prefill -> Forward should backtrack prompt+answer+suffix
         pre_c, fwd_c = _build_events("req-3", step=4, tokens_len=4)
@@ -132,12 +132,12 @@ def test_self_prompt_erase_modes_prompt_and_all(with_completion: bool):
     sp_all.handle_prefilled(pre2, tok)
     # Cycle 1: Forward -> Added prompt
     _ = sp_all.handle_forward_pass(fwd2, actions2, tok)
-    sp_all.handle_added(AddedEvent(pre2.request_id, 1, [ord("P")], 1, True), actions2, tok)
+    sp_all.handle_added(AddedEvent(pre2.request_id, 1, [ord("P")], True), actions2, tok)
     # Cycle 2: Prefill -> Forward -> Added answer
     pre2_a, fwd2_a = _build_events("req-4", step=2, tokens_len=1)
     sp_all.handle_prefilled(pre2_a, tok)
     _ = sp_all.handle_forward_pass(fwd2_a, ActionBuilder(fwd2_a), tok)
-    sp_all.handle_added(AddedEvent(pre2.request_id, 2, [ord("Z")], 2, False), ActionBuilder(fwd2_a), tok)
+    sp_all.handle_added(AddedEvent(pre2.request_id, 2, [ord("Z")], False), ActionBuilder(fwd2_a), tok)
     # Cycle 3: Prefill -> Forward (maybe suffix) / Added
     pre2_b, fwd2_b = _build_events("req-4", step=3, tokens_len=2)
     sp_all.handle_prefilled(pre2_b, tok)

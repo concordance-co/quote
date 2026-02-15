@@ -41,6 +41,8 @@ image = (
             "BACKEND_URL": "http://localhost:6767",
             "HF_HOME": "/models/hf",
             "HF_HUB_CACHE": "/models/hf/hub",
+            # Debug-only UI is opt-in; staging/prod shouldn't pay for it.
+            "CONCORDANCE_ENABLE_FULLPASS_DEBUG": "0",
             "MODEL_ID": os.environ.get("MODEL_ID")
             or "modularai/Llama-3.1-8B-Instruct-GGUF",
             "ADMIN_KEY": get_admin_key(),
@@ -49,12 +51,9 @@ image = (
         }
     )
     .add_local_python_source(
-        "quote.pipelines",
-        "quote.api",
-        "quote.server",
-        "quote.mods",
-        "quote.logs",
-        "quote.custom_arch",
+        # Ship the entire `quote` package to avoid missing-module deploy crashes
+        # when new subpackages are imported (e.g. quote.storage).
+        "quote",
         "sdk.quote_mod_sdk",
         "shared",
     )

@@ -358,11 +358,12 @@ class CharsStrategy(Strategy):
             return set()
 
     def step(self, state: _CharsState, token_id: int, tokenizer: Any) -> Optional[Backtrack] | Optional[ForceTokens]:
-        if state.stop_token and state.stop_token == token_id or decode_token(tokenizer, token_id).count(self._stop) > 0:
+        decoded = decode_token(tokenizer, token_id) or ""
+        if (state.stop_token and state.stop_token == token_id) or (self._stop and self._stop in decoded):
             state.done = True
             return
         if self._kind == CharsMode.JS_FLOAT:
-            s = decode_token(tokenizer, token_id)
+            s = decoded
             # Update flags
             if s and s.isdigit():
                 state.started = True
@@ -379,7 +380,7 @@ class CharsStrategy(Strategy):
             # Count characters as length of decoded piece
             state.char_count += len(s)
         else:
-            s = decode_token(tokenizer, token_id)
+            s = decoded
             state.char_count += len(s)
         if self._max is not None and state.char_count >= self._max:
             state.done = True

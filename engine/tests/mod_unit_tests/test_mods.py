@@ -464,9 +464,7 @@ class TestModIntegration:
 
     def test_all_mods_load(self):
         """Test that all mod files can be loaded without errors."""
-        from conftest import discover_test_mods
-
-        test_mods = discover_test_mods()
+        test_mods = _cft.discover_test_mods()
         assert len(test_mods) > 0, "Should discover at least one test mod"
 
         loaded_count = 0

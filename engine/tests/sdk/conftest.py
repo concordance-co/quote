@@ -240,10 +240,16 @@ pip_lib.ModelOutputs = ModelOutputs  # type: ignore[attr-defined]
 # max.driver
 driver = _ensure_module("max.driver")
 class Tensor:  # pragma: no cover - minimal tensor
-    def __init__(self, *_args, **_kwargs):
-        pass
+    def __init__(self, value: Any | None = None, *_args, **_kwargs):
+        # Keep a backing value so tests that call to_numpy()/from_numpy() work.
+        self.value = value
     def to(self, *_args, **_kwargs):
         return self
+    @classmethod
+    def from_numpy(cls, array: Any) -> "Tensor":
+        return cls(array)
+    def to_numpy(self) -> Any:
+        return self.value
 driver.Tensor = Tensor  # type: ignore[attr-defined]
 class Device:  # pragma: no cover
     pass

@@ -434,7 +434,7 @@ class FlowEngine(Generic[TState]):
         constraint = self._ensure_constraint(question)
         rid = state.request_id
         cstate = constraint._states.get(rid)
-        if cstate is None or not getattr(cstate, "completed", False) or isinstance(last_action, Backtrack):
+        if cstate is None or not getattr(cstate, "completed", False):
             return last_action if last_action is not None else actions.noop()
 
         ans_tokens = list(getattr(cstate, "answer_tokens", []) or [])
@@ -455,15 +455,11 @@ class FlowEngine(Generic[TState]):
         if not route:
             return last_action if last_action is not None else actions.noop()
 
-        # If last action is Backtrack, queue the route for next FP to avoid double action.
-        # try:
-        #      as _BT
-
-        #     if isinstance(last_action, _BT):
-        #         state.pending_route = route
-        #         return last_action
-        # except Exception:
-        #     pass
+        # If the constraint completed by emitting a Backtrack (erase modes), queue the route
+        # for the next ForwardPass so we don't "double-act" in one step.
+        if isinstance(last_action, Backtrack):
+            state.pending_route = route
+            return last_action
 
         return self._perform_route(event, state, question, route, actions, tokenizer)
 
