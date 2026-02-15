@@ -458,74 +458,51 @@ pub async fn run_activation(
         .clone()
         .unwrap_or_else(|| format!("ax-{}", Uuid::new_v4().simple()));
     let created_at = Utc::now();
-
-    let mut payload = Map::new();
-    payload.insert("prompt".to_string(), Value::String(prompt.clone()));
-    payload.insert("request_id".to_string(), Value::String(request_id.clone()));
-    if let Some(model_id) = &request.model_id {
-        payload.insert("model_id".to_string(), Value::String(model_id.clone()));
-    }
-    if let Some(max_tokens) = request.max_tokens {
-        payload.insert("max_tokens".to_string(), json!(max_tokens));
-    }
-    if let Some(temperature) = request.temperature {
-        payload.insert("temperature".to_string(), json!(temperature));
-    }
-    if let Some(top_p) = request.top_p {
-        payload.insert("top_p".to_string(), json!(top_p));
-    }
-    if let Some(top_k) = request.top_k {
-        payload.insert("top_k".to_string(), json!(top_k));
-    }
-    if let Some(collect_activations) = request.collect_activations {
-        payload.insert(
-            "collect_activations".to_string(),
-            json!(collect_activations),
-        );
-    }
-    if let Some(inline_sae) = request.inline_sae {
-        payload.insert("inline_sae".to_string(), json!(inline_sae));
-    }
-    if let Some(sae_id) = &request.sae_id {
-        payload.insert("sae_id".to_string(), Value::String(sae_id.clone()));
-    }
-    if let Some(sae_layer) = request.sae_layer {
-        payload.insert("sae_layer".to_string(), json!(sae_layer));
-    }
-    if let Some(sae_top_k) = request.sae_top_k {
-        payload.insert("sae_top_k".to_string(), json!(sae_top_k));
-    }
-    if let Some(sae_local_path) = &request.sae_local_path {
-        payload.insert(
-            "sae_local_path".to_string(),
-            Value::String(sae_local_path.clone()),
-        );
-    }
-
-    let model_id_for_index = request.model_id.clone().unwrap_or_default();
+    let model_id = request
+        .model_id
+        .clone()
+        .unwrap_or_else(|| "meta-llama/Llama-3.1-8B-Instruct".to_string());
     let sae_enabled = request.inline_sae.unwrap_or(true);
-    let client = build_http_client(DEFAULT_RUN_TIMEOUT_SECS)?;
-    let run_url = format!("{}/debug/fullpass/run", engine_base_url());
+    let prompt_chars = prompt.chars().count() as i32;
+    let max_tokens = request.max_tokens.unwrap_or(128);
 
-    let engine_response = client
-        .post(&run_url)
-        .json(&Value::Object(payload))
-        .send()
-        .await;
-    let engine_response = match engine_response {
+    // -----------------------------------------------------------------------
+    // Step 1: Call HF inference endpoint
+    // -----------------------------------------------------------------------
+    let hf_base_url = std::env::var("PLAYGROUND_ACTIVATIONS_HF_URL").unwrap_or_default();
+    if hf_base_url.is_empty() {
+        return Err(explorer_error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "HF_NOT_CONFIGURED",
+            "PLAYGROUND_ACTIVATIONS_HF_URL is not configured",
+            None,
+        ));
+    }
+
+    let client = build_http_client(DEFAULT_RUN_TIMEOUT_SECS)?;
+    let hf_url = format!("{}/hf/generate", hf_base_url.trim_end_matches('/'));
+
+    let hf_payload = json!({
+        "prompt": prompt,
+        "max_tokens": max_tokens,
+    });
+
+    let hf_result = client.post(&hf_url).json(&hf_payload).send().await;
+
+    let hf_response = match hf_result {
         Ok(resp) => resp,
         Err(e) => {
             let (http_status, error_code, message) = if e.is_timeout() {
                 (
                     StatusCode::GATEWAY_TIMEOUT,
-                    "ENGINE_TIMEOUT",
-                    format!("engine run timed out: {e}"),
+                    "HF_TIMEOUT",
+                    format!("HF inference timed out: {e}"),
                 )
             } else {
                 (
                     StatusCode::BAD_GATEWAY,
-                    "ENGINE_UNAVAILABLE",
-                    format!("engine run request failed: {e}"),
+                    "HF_UNAVAILABLE",
+                    format!("HF inference request failed: {e}"),
                 )
             };
 
@@ -534,8 +511,8 @@ pub async fn run_activation(
                 &RunIndexUpsert {
                     request_id: request_id.clone(),
                     created_at,
-                    model_id: model_id_for_index,
-                    prompt_chars: prompt.chars().count() as i32,
+                    model_id: model_id.clone(),
+                    prompt_chars,
                     output_tokens: 0,
                     events_count: 0,
                     actions_count: 0,
@@ -556,18 +533,18 @@ pub async fn run_activation(
         }
     };
 
-    if !engine_response.status().is_success() {
-        let status = engine_response.status();
-        let body = engine_response.text().await.unwrap_or_default();
-        let message = format!("engine returned {status}: {body}");
+    if !hf_response.status().is_success() {
+        let status = hf_response.status();
+        let body = hf_response.text().await.unwrap_or_default();
+        let message = format!("HF inference returned {status}: {body}");
 
         let _ = upsert_run_index(
             &state,
             &RunIndexUpsert {
                 request_id: request_id.clone(),
                 created_at,
-                model_id: model_id_for_index,
-                prompt_chars: prompt.chars().count() as i32,
+                model_id: model_id.clone(),
+                prompt_chars,
                 output_tokens: 0,
                 events_count: 0,
                 actions_count: 0,
@@ -586,89 +563,95 @@ pub async fn run_activation(
 
         return Err(explorer_error(
             StatusCode::BAD_GATEWAY,
-            "ENGINE_BAD_RESPONSE",
+            "HF_BAD_RESPONSE",
             message,
-            Some(json!({
-                "engine_status": status.as_u16(),
-                "engine_body": body
-            })),
+            None,
         ));
     }
 
-    let engine_json: Value = engine_response.json().await.map_err(|e| {
+    let hf_json: Value = hf_response.json().await.map_err(|e| {
         explorer_error(
             StatusCode::BAD_GATEWAY,
-            "ENGINE_BAD_RESPONSE",
-            format!("failed to parse engine response json: {e}"),
+            "HF_BAD_RESPONSE",
+            format!("failed to parse HF response json: {e}"),
             None,
         )
     })?;
 
-    let request_id = engine_json
-        .get("request_id")
-        .and_then(Value::as_str)
-        .unwrap_or(&request_id)
-        .to_string();
-    let model_id = engine_json
-        .get("model_id")
-        .and_then(Value::as_str)
-        .or(request.model_id.as_deref())
-        .unwrap_or_default()
-        .to_string();
-    let output_text = engine_json
+    let output_text = hf_json
         .get("output_text")
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let output_ids: Vec<i64> = engine_json
-        .get("output_ids")
+    let output_token_ids: Vec<i64> = hf_json
+        .get("output_token_ids")
         .and_then(Value::as_array)
         .map(|arr| arr.iter().filter_map(Value::as_i64).collect())
         .unwrap_or_default();
-    let events = engine_json
-        .get("events")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    let actions = engine_json
-        .get("actions")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    let activation_rows = engine_json
-        .get("activations_preview")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    let feature_ids: Vec<i64> = engine_json
-        .get("feature_ids")
-        .and_then(Value::as_array)
-        .map(|arr| arr.iter().filter_map(Value::as_i64).collect())
-        .unwrap_or_default();
-    let duration_ms = engine_json
-        .get("metadata")
-        .and_then(|m| m.get("duration_ms"))
-        .and_then(Value::as_i64)
-        .unwrap_or_default()
+
+    // -----------------------------------------------------------------------
+    // Step 2: Call SAE extract with output_token_ids
+    // -----------------------------------------------------------------------
+    let sae_top_k = request.sae_top_k.unwrap_or(20);
+    let feature_timeline = if sae_enabled && !output_token_ids.is_empty() {
+        call_sae_extract(&client, &output_token_ids, sae_top_k).await
+    } else {
+        Value::Array(vec![])
+    };
+
+    // -----------------------------------------------------------------------
+    // Step 3: Compute summary stats from feature_timeline
+    // -----------------------------------------------------------------------
+    let unique_features_count = count_unique_features(&feature_timeline);
+    let activation_rows = derive_activation_rows(
+        &feature_timeline,
+        &ActivationRowsQuery {
+            feature_id: None,
+            sae_layer: None,
+            token_start: None,
+            token_end: None,
+            rank_max: None,
+            limit: Some(500),
+        },
+    );
+    let activation_rows_count = activation_rows.len().min(i32::MAX as usize) as i32;
+    let top_features_preview = {
+        let top = derive_top_features(&feature_timeline, 20);
+        if top.is_empty() {
+            None
+        } else {
+            Some(json!(top
+                .iter()
+                .filter_map(|f| f.get("feature_id").and_then(Value::as_i64))
+                .collect::<Vec<_>>()))
+        }
+    };
+
+    let duration_ms = Utc::now()
+        .signed_duration_since(created_at)
+        .num_milliseconds()
         .clamp(0, i32::MAX as i64) as i32;
 
+    // -----------------------------------------------------------------------
+    // Step 4: Persist to Postgres (index + preview)
+    // -----------------------------------------------------------------------
     let summary = ActivationRunSummary {
         request_id: request_id.clone(),
         created_at,
         model_id: model_id.clone(),
-        prompt_chars: prompt.chars().count() as i32,
-        output_tokens: output_ids.len().min(i32::MAX as usize) as i32,
-        events_count: events.len().min(i32::MAX as usize) as i32,
-        actions_count: actions.len().min(i32::MAX as usize) as i32,
-        activation_rows_count: activation_rows.len().min(i32::MAX as usize) as i32,
-        unique_features_count: feature_ids.len().min(i32::MAX as usize) as i32,
+        prompt_chars,
+        output_tokens: output_token_ids.len().min(i32::MAX as usize) as i32,
+        events_count: 0,
+        actions_count: 0,
+        activation_rows_count,
+        unique_features_count,
         sae_enabled,
         sae_id: request.sae_id.clone(),
         sae_layer: request.sae_layer,
         duration_ms,
         status: "ok".to_string(),
         error_message: None,
-        top_features_preview: Some(json!(feature_ids.iter().take(20).collect::<Vec<_>>())),
+        top_features_preview: top_features_preview.clone(),
     };
 
     upsert_run_index(
@@ -702,21 +685,109 @@ pub async fn run_activation(
         )
     })?;
 
+    let preview = ActivationRunPreview {
+        request_id: request_id.clone(),
+        created_at,
+        updated_at: Utc::now(),
+        model_id: model_id.clone(),
+        prompt: prompt.clone(),
+        output_text: output_text.clone(),
+        output_token_ids: output_token_ids.clone(),
+        sae_id: request.sae_id.clone(),
+        sae_layer: request.sae_layer,
+        sae_top_k: Some(sae_top_k),
+        feature_timeline: feature_timeline.clone(),
+    };
+
+    upsert_run_preview(&state, &preview).await.map_err(|e| {
+        explorer_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "PREVIEW_WRITE_FAILED",
+            format!("failed to persist run preview: {e}"),
+            None,
+        )
+    })?;
+
+    // -----------------------------------------------------------------------
+    // Step 5: Return ActivationRunResponse
+    // -----------------------------------------------------------------------
     Ok(Json(ActivationRunResponse {
         request_id,
         status: "ok".to_string(),
         run_summary: summary,
         output: ActivationOutput {
             text: output_text,
-            token_ids: output_ids,
+            token_ids: output_token_ids,
         },
         preview: ActivationPreview {
-            events: events.into_iter().take(200).collect(),
-            actions: actions.into_iter().take(200).collect(),
-            activation_rows: activation_rows.into_iter().take(500).collect(),
+            events: vec![],
+            actions: vec![],
+            activation_rows,
         },
         created_at,
     }))
+}
+
+/// Call the SAE feature extraction service. On failure, logs the error and
+/// returns an empty timeline (partial success — output is OK but no features).
+async fn call_sae_extract(client: &Client, token_ids: &[i64], top_k: i32) -> Value {
+    let sae_base_url = std::env::var("PLAYGROUND_SAE_URL").unwrap_or_default();
+    if sae_base_url.is_empty() {
+        tracing::warn!("PLAYGROUND_SAE_URL not configured; skipping feature extraction");
+        return Value::Array(vec![]);
+    }
+
+    let extract_url = format!("{}/extract_features", sae_base_url.trim_end_matches('/'));
+    let payload = json!({
+        "token_ids": token_ids,
+        "top_k": top_k,
+    });
+
+    let result = client.post(&extract_url).json(&payload).send().await;
+    let response = match result {
+        Ok(resp) => resp,
+        Err(e) => {
+            tracing::error!("SAE extract request failed: {e}");
+            return Value::Array(vec![]);
+        }
+    };
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        tracing::error!("SAE extract returned {status}: {body}");
+        return Value::Array(vec![]);
+    }
+
+    match response.json::<Value>().await {
+        Ok(json) => json
+            .get("feature_timeline")
+            .cloned()
+            .unwrap_or_else(|| Value::Array(vec![])),
+        Err(e) => {
+            tracing::error!("failed to parse SAE extract response: {e}");
+            Value::Array(vec![])
+        }
+    }
+}
+
+/// Count unique feature IDs across all positions in a feature_timeline.
+fn count_unique_features(timeline: &Value) -> i32 {
+    let entries = match timeline.as_array() {
+        Some(arr) => arr,
+        None => return 0,
+    };
+    let mut seen = std::collections::HashSet::new();
+    for entry in entries {
+        if let Some(feats) = entry.get("top_features").and_then(Value::as_array) {
+            for feat in feats {
+                if let Some(id) = feat.get("id").and_then(Value::as_i64) {
+                    seen.insert(id);
+                }
+            }
+        }
+    }
+    seen.len().min(i32::MAX as usize) as i32
 }
 
 pub async fn list_activation_runs(
