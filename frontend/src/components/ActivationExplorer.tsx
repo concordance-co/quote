@@ -21,6 +21,7 @@ import {
 } from "@/lib/api";
 
 const DEFAULT_MODEL = "meta-llama/Llama-3.1-8B-Instruct";
+const FEATURE_DELTAS_ENABLED = false;
 
 type RunFormState = {
   prompt: string;
@@ -371,7 +372,7 @@ export default function ActivationExplorer() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`grid gap-4 ${FEATURE_DELTAS_ENABLED ? "lg:grid-cols-2" : ""}`}>
         <Card>
           <CardHeader>
             <CardTitle>Activation Rows</CardTitle>
@@ -410,56 +411,58 @@ export default function ActivationExplorer() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Feature Delta Timeline</CardTitle>
-            <CardDescription>Query per-feature activation deltas over generation.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                placeholder="Feature ID"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                value={featureIdInput}
-                onChange={(e) => setFeatureIdInput(e.target.value)}
-              />
-              <Button onClick={() => void fetchFeatureDeltas()} disabled={isLoadingDeltas}>
-                {isLoadingDeltas ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
-            {!featureDeltas && (
-              <p className="text-sm text-muted-foreground">
-                Enter a feature ID from the rows table or top features panel.
-              </p>
-            )}
-
-            {featureDeltas && (
-              <div className="max-h-72 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs">
-                {featureDeltas.rows.map((row, idx) => {
-                  const entry = row as Record<string, unknown>;
-                  return (
-                    <div key={idx}>
-                      step={asNumber(entry.step)} pos={asNumber(entry.token_position)} act=
-                      {asNumber(entry.activation_value).toFixed(4)} delta=
-                      {entry.delta === null || entry.delta === undefined
-                        ? "null"
-                        : asNumber(entry.delta).toFixed(4)}
-                      {" token="}
-                      {asString(entry.token_id)}
-                    </div>
-                  );
-                })}
+        {FEATURE_DELTAS_ENABLED && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Feature Delta Timeline</CardTitle>
+              <CardDescription>Query per-feature activation deltas over generation.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="Feature ID"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  value={featureIdInput}
+                  onChange={(e) => setFeatureIdInput(e.target.value)}
+                />
+                <Button onClick={() => void fetchFeatureDeltas()} disabled={isLoadingDeltas}>
+                  {isLoadingDeltas ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              {!featureDeltas && (
+                <p className="text-sm text-muted-foreground">
+                  Enter a feature ID from the rows table or top features panel.
+                </p>
+              )}
+
+              {featureDeltas && (
+                <div className="max-h-72 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs">
+                  {featureDeltas.rows.map((row, idx) => {
+                    const entry = row as Record<string, unknown>;
+                    return (
+                      <div key={idx}>
+                        step={asNumber(entry.step)} pos={asNumber(entry.token_position)} act=
+                        {asNumber(entry.activation_value).toFixed(4)} delta=
+                        {entry.delta === null || entry.delta === undefined
+                          ? "null"
+                          : asNumber(entry.delta).toFixed(4)}
+                        {" token="}
+                        {asString(entry.token_id)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
