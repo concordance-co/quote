@@ -954,74 +954,15 @@ pub async fn get_activation_rows(
 }
 
 pub async fn get_feature_deltas(
-    Path(request_id): Path<String>,
-    Query(query): Query<FeatureDeltaQuery>,
+    Path(_request_id): Path<String>,
+    Query(_query): Query<FeatureDeltaQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    if query.feature_id < 0 {
-        return Err(explorer_error(
-            StatusCode::BAD_REQUEST,
-            "INVALID_ARGUMENT",
-            "feature_id must be >= 0",
-            None,
-        ));
-    }
-    let limit = clamp_i64(query.limit, 512, 1, 4096);
-    let client = build_http_client(DEFAULT_QUERY_TIMEOUT_SECS)?;
-    let mut req = client
-        .get(format!(
-            "{}/debug/fullpass/feature-deltas",
-            engine_base_url()
-        ))
-        .query(&[
-            ("request_id", request_id.as_str()),
-            ("feature_id", &query.feature_id.to_string()),
-            ("limit", &limit.to_string()),
-        ]);
-    if let Some(sae_layer) = query.sae_layer {
-        req = req.query(&[("sae_layer", sae_layer)]);
-    }
-
-    let response = req.send().await.map_err(|e| {
-        if e.is_timeout() {
-            explorer_error(
-                StatusCode::GATEWAY_TIMEOUT,
-                "ENGINE_TIMEOUT",
-                format!("engine feature delta query timed out: {e}"),
-                None,
-            )
-        } else {
-            explorer_error(
-                StatusCode::BAD_GATEWAY,
-                "ENGINE_UNAVAILABLE",
-                format!("failed to query engine feature deltas: {e}"),
-                None,
-            )
-        }
-    })?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(explorer_error(
-            StatusCode::BAD_GATEWAY,
-            "ENGINE_BAD_RESPONSE",
-            format!("engine feature delta query failed: {status}"),
-            Some(json!({
-                "engine_status": status.as_u16(),
-                "engine_body": body
-            })),
-        ));
-    }
-
-    let payload = response.json::<Value>().await.map_err(|e| {
-        explorer_error(
-            StatusCode::BAD_GATEWAY,
-            "ENGINE_BAD_RESPONSE",
-            format!("failed to parse engine feature delta payload: {e}"),
-            None,
-        )
-    })?;
-    Ok(Json(payload))
+    Err(explorer_error(
+        StatusCode::NOT_IMPLEMENTED,
+        "NOT_IMPLEMENTED",
+        "Feature deltas are not yet available in staging",
+        None,
+    ))
 }
 
 pub async fn get_top_features(
