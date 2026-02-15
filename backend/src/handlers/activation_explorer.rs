@@ -1057,3 +1057,421 @@ pub async fn activation_health(
         "last_error": last_error
     })))
 }
+
+// ---------------------------------------------------------------------------
+// Pure helpers — derive activation rows and top features from feature_timeline
+// ---------------------------------------------------------------------------
+
+/// Flatten a `feature_timeline` JSONB value into activation rows.
+///
+/// The timeline is expected to be a JSON array where each entry has:
+/// ```json
+/// {
+///   "position": 0,
+///   "token": 259,
+///   "token_str": " word",
+///   "top_features": [{ "id": 1234, "activation": 2.456 }, ...]
+/// }
+/// ```
+///
+/// Each `(position, feature)` pair becomes one row with fields:
+/// `{step, token_position, feature_id, activation_value, rank, token_id}`.
+///
+/// Filters from `ActivationRowsQuery` are applied:
+/// - `feature_id`: keep only rows matching this feature
+/// - `token_start` / `token_end`: keep only rows in this position range (inclusive)
+/// - `rank_max`: keep only rows with rank <= this value (1-based)
+/// - `limit`: cap the total number of returned rows
+pub fn derive_activation_rows(
+    timeline: &Value,
+    filters: &ActivationRowsQuery,
+) -> Vec<Value> {
+    let entries = match timeline.as_array() {
+        Some(arr) => arr,
+        None => return Vec::new(),
+    };
+
+    let limit = filters.limit.unwrap_or(500).max(1) as usize;
+    let mut rows: Vec<Value> = Vec::new();
+
+    for entry in entries {
+        let position = entry
+            .get("position")
+            .and_then(Value::as_u64)
+            .unwrap_or(0) as i64;
+        let token_id = entry
+            .get("token")
+            .and_then(Value::as_i64)
+            .unwrap_or(0);
+
+        // Apply token position range filter
+        if let Some(start) = filters.token_start {
+            if position < start {
+                continue;
+            }
+        }
+        if let Some(end) = filters.token_end {
+            if position > end {
+                continue;
+            }
+        }
+
+        let top_features = match entry.get("top_features").and_then(Value::as_array) {
+            Some(feats) => feats,
+            None => continue,
+        };
+
+        for (rank_idx, feat) in top_features.iter().enumerate() {
+            let feat_id = feat.get("id").and_then(Value::as_i64).unwrap_or(0);
+            let activation = feat.get("activation").and_then(Value::as_f64).unwrap_or(0.0);
+            let rank = (rank_idx + 1) as i64; // 1-based rank
+
+            // Apply feature_id filter
+            if let Some(filter_fid) = filters.feature_id {
+                if feat_id != filter_fid {
+                    continue;
+                }
+            }
+
+            // Apply rank_max filter
+            if let Some(rank_max) = filters.rank_max {
+                if rank > rank_max {
+                    continue;
+                }
+            }
+
+            rows.push(json!({
+                "step": 0,
+                "token_position": position,
+                "feature_id": feat_id,
+                "activation_value": activation,
+                "rank": rank,
+                "token_id": token_id,
+            }));
+
+            if rows.len() >= limit {
+                return rows;
+            }
+        }
+    }
+
+    rows
+}
+
+/// Aggregate `feature_timeline` into top features sorted by max activation.
+///
+/// For each unique `feature_id` across all positions, computes:
+/// - `max_activation`: the highest activation value seen
+/// - `hits`: the number of positions where this feature appears
+///
+/// Returns the top `n` features sorted by `max_activation` descending, with
+/// `hits` as a tiebreaker (descending).
+pub fn derive_top_features(timeline: &Value, n: i64) -> Vec<Value> {
+    let entries = match timeline.as_array() {
+        Some(arr) => arr,
+        None => return Vec::new(),
+    };
+
+    // feature_id -> (max_activation, hits)
+    let mut aggregates: std::collections::HashMap<i64, (f64, i64)> =
+        std::collections::HashMap::new();
+
+    for entry in entries {
+        let top_features = match entry.get("top_features").and_then(Value::as_array) {
+            Some(feats) => feats,
+            None => continue,
+        };
+
+        for feat in top_features {
+            let feat_id = feat.get("id").and_then(Value::as_i64).unwrap_or(0);
+            let activation = feat.get("activation").and_then(Value::as_f64).unwrap_or(0.0);
+
+            let entry = aggregates.entry(feat_id).or_insert((0.0, 0));
+            if activation > entry.0 {
+                entry.0 = activation;
+            }
+            entry.1 += 1;
+        }
+    }
+
+    let mut features: Vec<(i64, f64, i64)> = aggregates
+        .into_iter()
+        .map(|(id, (max_act, hits))| (id, max_act, hits))
+        .collect();
+
+    // Sort by max_activation DESC, then hits DESC as tiebreaker
+    features.sort_by(|a, b| {
+        b.1.partial_cmp(&a.1)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| b.2.cmp(&a.2))
+    });
+
+    let n = n.max(1) as usize;
+    features
+        .into_iter()
+        .take(n)
+        .map(|(feature_id, max_activation, hits)| {
+            json!({
+                "feature_id": feature_id,
+                "max_activation": max_activation,
+                "hits": hits,
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ActivationRowsQuery, derive_activation_rows, derive_top_features};
+    use serde_json::json;
+
+    fn sample_timeline() -> serde_json::Value {
+        json!([
+            {
+                "position": 0,
+                "token": 100,
+                "token_str": "Hello",
+                "top_features": [
+                    { "id": 10, "activation": 3.5 },
+                    { "id": 20, "activation": 2.1 },
+                    { "id": 30, "activation": 1.0 }
+                ]
+            },
+            {
+                "position": 1,
+                "token": 200,
+                "token_str": " world",
+                "top_features": [
+                    { "id": 10, "activation": 4.0 },
+                    { "id": 40, "activation": 2.8 }
+                ]
+            },
+            {
+                "position": 2,
+                "token": 300,
+                "token_str": "!",
+                "top_features": [
+                    { "id": 20, "activation": 5.0 },
+                    { "id": 50, "activation": 0.5 }
+                ]
+            }
+        ])
+    }
+
+    fn empty_filters() -> ActivationRowsQuery {
+        ActivationRowsQuery {
+            feature_id: None,
+            sae_layer: None,
+            token_start: None,
+            token_end: None,
+            rank_max: None,
+            limit: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // derive_activation_rows tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_derive_rows_no_filters() {
+        let timeline = sample_timeline();
+        let rows = derive_activation_rows(&timeline, &empty_filters());
+        // 3 + 2 + 2 = 7 rows total
+        assert_eq!(rows.len(), 7);
+
+        // First row should be position 0, feature 10, rank 1
+        assert_eq!(rows[0]["token_position"], 0);
+        assert_eq!(rows[0]["feature_id"], 10);
+        assert_eq!(rows[0]["activation_value"], 3.5);
+        assert_eq!(rows[0]["rank"], 1);
+        assert_eq!(rows[0]["token_id"], 100);
+        assert_eq!(rows[0]["step"], 0);
+    }
+
+    #[test]
+    fn test_derive_rows_filter_feature_id() {
+        let timeline = sample_timeline();
+        let filters = ActivationRowsQuery {
+            feature_id: Some(10),
+            ..empty_filters()
+        };
+        let rows = derive_activation_rows(&timeline, &filters);
+        // Feature 10 appears at position 0 and 1
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().all(|r| r["feature_id"] == 10));
+    }
+
+    #[test]
+    fn test_derive_rows_filter_token_range() {
+        let timeline = sample_timeline();
+        let filters = ActivationRowsQuery {
+            token_start: Some(1),
+            token_end: Some(1),
+            ..empty_filters()
+        };
+        let rows = derive_activation_rows(&timeline, &filters);
+        // Only position 1: 2 features
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().all(|r| r["token_position"] == 1));
+    }
+
+    #[test]
+    fn test_derive_rows_filter_rank_max() {
+        let timeline = sample_timeline();
+        let filters = ActivationRowsQuery {
+            rank_max: Some(1),
+            ..empty_filters()
+        };
+        let rows = derive_activation_rows(&timeline, &filters);
+        // Only rank 1 from each position: 3 rows
+        assert_eq!(rows.len(), 3);
+        assert!(rows.iter().all(|r| r["rank"] == 1));
+    }
+
+    #[test]
+    fn test_derive_rows_limit() {
+        let timeline = sample_timeline();
+        let filters = ActivationRowsQuery {
+            limit: Some(3),
+            ..empty_filters()
+        };
+        let rows = derive_activation_rows(&timeline, &filters);
+        assert_eq!(rows.len(), 3);
+    }
+
+    #[test]
+    fn test_derive_rows_combined_filters() {
+        let timeline = sample_timeline();
+        let filters = ActivationRowsQuery {
+            feature_id: Some(20),
+            token_start: Some(0),
+            token_end: Some(2),
+            rank_max: Some(5),
+            limit: Some(10),
+            ..empty_filters()
+        };
+        let rows = derive_activation_rows(&timeline, &filters);
+        // Feature 20 at position 0 (rank 2) and position 2 (rank 1)
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().all(|r| r["feature_id"] == 20));
+    }
+
+    #[test]
+    fn test_derive_rows_empty_timeline() {
+        let timeline = json!([]);
+        let rows = derive_activation_rows(&timeline, &empty_filters());
+        assert!(rows.is_empty());
+    }
+
+    #[test]
+    fn test_derive_rows_non_array() {
+        let timeline = json!(null);
+        let rows = derive_activation_rows(&timeline, &empty_filters());
+        assert!(rows.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // derive_top_features tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_top_features_basic() {
+        let timeline = sample_timeline();
+        let top = derive_top_features(&timeline, 10);
+        // 5 unique features: 10, 20, 30, 40, 50
+        assert_eq!(top.len(), 5);
+
+        // Sorted by max_activation DESC:
+        // feature 20: max=5.0, hits=2
+        // feature 10: max=4.0, hits=2
+        // feature 40: max=2.8, hits=1
+        // feature 30: max=1.0, hits=1
+        // feature 50: max=0.5, hits=1
+        assert_eq!(top[0]["feature_id"], 20);
+        assert_eq!(top[0]["max_activation"], 5.0);
+        assert_eq!(top[0]["hits"], 2);
+
+        assert_eq!(top[1]["feature_id"], 10);
+        assert_eq!(top[1]["max_activation"], 4.0);
+        assert_eq!(top[1]["hits"], 2);
+
+        assert_eq!(top[2]["feature_id"], 40);
+        assert_eq!(top[2]["max_activation"], 2.8);
+        assert_eq!(top[2]["hits"], 1);
+    }
+
+    #[test]
+    fn test_top_features_limit_n() {
+        let timeline = sample_timeline();
+        let top = derive_top_features(&timeline, 2);
+        assert_eq!(top.len(), 2);
+        // Top 2 by max_activation: feature 20 (5.0), feature 10 (4.0)
+        assert_eq!(top[0]["feature_id"], 20);
+        assert_eq!(top[1]["feature_id"], 10);
+    }
+
+    #[test]
+    fn test_top_features_empty_timeline() {
+        let timeline = json!([]);
+        let top = derive_top_features(&timeline, 10);
+        assert!(top.is_empty());
+    }
+
+    #[test]
+    fn test_top_features_non_array() {
+        let timeline = json!(null);
+        let top = derive_top_features(&timeline, 10);
+        assert!(top.is_empty());
+    }
+
+    #[test]
+    fn test_top_features_single_entry() {
+        let timeline = json!([
+            {
+                "position": 0,
+                "token": 42,
+                "token_str": "x",
+                "top_features": [
+                    { "id": 999, "activation": 7.7 }
+                ]
+            }
+        ]);
+        let top = derive_top_features(&timeline, 5);
+        assert_eq!(top.len(), 1);
+        assert_eq!(top[0]["feature_id"], 999);
+        assert_eq!(top[0]["max_activation"], 7.7);
+        assert_eq!(top[0]["hits"], 1);
+    }
+
+    #[test]
+    fn test_top_features_tiebreak_by_hits() {
+        // Two features with same max_activation but different hit counts
+        let timeline = json!([
+            {
+                "position": 0,
+                "token": 1,
+                "token_str": "a",
+                "top_features": [
+                    { "id": 100, "activation": 3.0 },
+                    { "id": 200, "activation": 3.0 }
+                ]
+            },
+            {
+                "position": 1,
+                "token": 2,
+                "token_str": "b",
+                "top_features": [
+                    { "id": 100, "activation": 2.0 }
+                ]
+            }
+        ]);
+        let top = derive_top_features(&timeline, 10);
+        assert_eq!(top.len(), 2);
+        // Both have max_activation=3.0, but feature 100 has 2 hits vs 1
+        assert_eq!(top[0]["feature_id"], 100);
+        assert_eq!(top[0]["hits"], 2);
+        assert_eq!(top[1]["feature_id"], 200);
+        assert_eq!(top[1]["hits"], 1);
+    }
+}
