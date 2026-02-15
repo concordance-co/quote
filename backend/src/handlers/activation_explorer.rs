@@ -882,75 +882,38 @@ pub async fn get_activation_run_summary(
 }
 
 pub async fn get_activation_rows(
+    State(state): State<AppState>,
     Path(request_id): Path<String>,
     Query(query): Query<ActivationRowsQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let limit = clamp_i64(query.limit, 500, 1, 5000);
-    let client = build_http_client(DEFAULT_QUERY_TIMEOUT_SECS)?;
-    let mut req = client
-        .get(format!("{}/debug/fullpass/activations", engine_base_url()))
-        .query(&[
-            ("request_id", request_id.as_str()),
-            ("limit", &limit.to_string()),
-        ]);
-
-    if let Some(feature_id) = query.feature_id {
-        req = req.query(&[("feature_id", feature_id)]);
-    }
-    if let Some(sae_layer) = query.sae_layer {
-        req = req.query(&[("sae_layer", sae_layer)]);
-    }
-    if let Some(token_start) = query.token_start {
-        req = req.query(&[("token_start", token_start)]);
-    }
-    if let Some(token_end) = query.token_end {
-        req = req.query(&[("token_end", token_end)]);
-    }
-    if let Some(rank_max) = query.rank_max {
-        req = req.query(&[("rank_max", rank_max)]);
-    }
-
-    let response = req.send().await.map_err(|e| {
-        if e.is_timeout() {
+    let preview = read_run_preview(&state, &request_id)
+        .await
+        .map_err(|e| {
             explorer_error(
-                StatusCode::GATEWAY_TIMEOUT,
-                "ENGINE_TIMEOUT",
-                format!("engine activations query timed out: {e}"),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "DB_READ_FAILED",
+                format!("failed to read activation preview: {e}"),
                 None,
             )
-        } else {
-            explorer_error(
-                StatusCode::BAD_GATEWAY,
-                "ENGINE_UNAVAILABLE",
-                format!("failed to query engine activations: {e}"),
-                None,
-            )
-        }
-    })?;
+        })?;
 
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(explorer_error(
-            StatusCode::BAD_GATEWAY,
-            "ENGINE_BAD_RESPONSE",
-            format!("engine activations query failed: {status}"),
-            Some(json!({
-                "engine_status": status.as_u16(),
-                "engine_body": body
-            })),
-        ));
-    }
-
-    let payload = response.json::<Value>().await.map_err(|e| {
+    let preview = preview.ok_or_else(|| {
         explorer_error(
-            StatusCode::BAD_GATEWAY,
-            "ENGINE_BAD_RESPONSE",
-            format!("failed to parse engine activations payload: {e}"),
+            StatusCode::NOT_FOUND,
+            "NOT_FOUND",
+            format!("no activation preview found for request_id={request_id}"),
             None,
         )
     })?;
-    Ok(Json(payload))
+
+    let rows = derive_activation_rows(&preview.feature_timeline, &query);
+    let row_count = rows.len();
+
+    Ok(Json(json!({
+        "request_id": request_id,
+        "row_count": row_count,
+        "rows": rows,
+    })))
 }
 
 pub async fn get_feature_deltas(
