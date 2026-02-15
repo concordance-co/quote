@@ -140,6 +140,21 @@ struct RunIndexUpsert {
     top_features_preview: Option<Value>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ActivationRunPreview {
+    pub request_id: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub model_id: String,
+    pub prompt: String,
+    pub output_text: String,
+    pub output_token_ids: Vec<i64>,
+    pub sae_id: Option<String>,
+    pub sae_layer: Option<i32>,
+    pub sae_top_k: Option<i32>,
+    pub feature_timeline: Value,
+}
+
 fn engine_base_url() -> String {
     std::env::var("ENGINE_BASE_URL")
         .unwrap_or_else(|_| DEFAULT_ENGINE_BASE_URL.to_string())
@@ -260,6 +275,99 @@ async fn upsert_run_index(state: &AppState, row: &RunIndexUpsert) -> Result<(), 
     .execute(&state.db_pool)
     .await
     .map(|_| ())
+}
+
+pub async fn upsert_run_preview(
+    state: &AppState,
+    preview: &ActivationRunPreview,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO activation_run_previews (
+            request_id,
+            created_at,
+            updated_at,
+            model_id,
+            prompt,
+            output_text,
+            output_token_ids,
+            sae_id,
+            sae_layer,
+            sae_top_k,
+            feature_timeline
+        )
+        VALUES (
+            $1, $2, NOW(), $3, $4, $5, $6, $7, $8, $9, $10
+        )
+        ON CONFLICT (request_id) DO UPDATE SET
+            updated_at = NOW(),
+            model_id = EXCLUDED.model_id,
+            prompt = EXCLUDED.prompt,
+            output_text = EXCLUDED.output_text,
+            output_token_ids = EXCLUDED.output_token_ids,
+            sae_id = EXCLUDED.sae_id,
+            sae_layer = EXCLUDED.sae_layer,
+            sae_top_k = EXCLUDED.sae_top_k,
+            feature_timeline = EXCLUDED.feature_timeline
+        "#,
+    )
+    .bind(&preview.request_id)
+    .bind(preview.created_at)
+    .bind(&preview.model_id)
+    .bind(&preview.prompt)
+    .bind(&preview.output_text)
+    .bind(&preview.output_token_ids)
+    .bind(&preview.sae_id)
+    .bind(preview.sae_layer)
+    .bind(preview.sae_top_k)
+    .bind(&preview.feature_timeline)
+    .execute(&state.db_pool)
+    .await
+    .map(|_| ())
+}
+
+pub async fn read_run_preview(
+    state: &AppState,
+    request_id: &str,
+) -> Result<Option<ActivationRunPreview>, sqlx::Error> {
+    let row = sqlx::query(
+        r#"
+        SELECT
+            request_id,
+            created_at,
+            updated_at,
+            model_id,
+            prompt,
+            output_text,
+            output_token_ids,
+            sae_id,
+            sae_layer,
+            sae_top_k,
+            feature_timeline
+        FROM activation_run_previews
+        WHERE request_id = $1
+        "#,
+    )
+    .bind(request_id)
+    .fetch_optional(&state.db_pool)
+    .await?;
+
+    match row {
+        Some(row) => Ok(Some(ActivationRunPreview {
+            request_id: row.try_get("request_id")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+            model_id: row.try_get("model_id")?,
+            prompt: row.try_get("prompt")?,
+            output_text: row.try_get("output_text")?,
+            output_token_ids: row.try_get("output_token_ids")?,
+            sae_id: row.try_get("sae_id")?,
+            sae_layer: row.try_get("sae_layer")?,
+            sae_top_k: row.try_get("sae_top_k")?,
+            feature_timeline: row.try_get("feature_timeline")?,
+        })),
+        None => Ok(None),
+    }
 }
 
 fn map_summary_row(row: &sqlx::postgres::PgRow) -> Result<ActivationRunSummary, sqlx::Error> {
