@@ -1038,35 +1038,64 @@ pub async fn activation_health(
     State(state): State<AppState>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let client = build_http_client(5)?;
-    let engine_resp = client
-        .get(format!("{}/healthz", engine_base_url()))
-        .send()
-        .await;
-    let engine_reachable = matches!(engine_resp, Ok(resp) if resp.status().is_success());
 
+    // Check Postgres reachability
     let index_db_reachable = sqlx::query_scalar::<_, i64>("SELECT 1")
         .fetch_one(&state.db_pool)
         .await
         .is_ok();
 
-    let status = if engine_reachable && index_db_reachable {
+    // Check HF inference reachability
+    let hf_base_url = std::env::var("PLAYGROUND_ACTIVATIONS_HF_URL").unwrap_or_default();
+    let hf_inference_reachable = if hf_base_url.is_empty() {
+        false
+    } else {
+        let resp = client
+            .get(hf_base_url.trim_end_matches('/'))
+            .send()
+            .await;
+        matches!(resp, Ok(r) if r.status().is_success())
+    };
+
+    // Check SAE service reachability
+    let sae_base_url = std::env::var("PLAYGROUND_SAE_URL").unwrap_or_default();
+    let sae_reachable = if sae_base_url.is_empty() {
+        false
+    } else {
+        let resp = client
+            .get(sae_base_url.trim_end_matches('/'))
+            .send()
+            .await;
+        matches!(resp, Ok(r) if r.status().is_success())
+    };
+
+    let status = if index_db_reachable && hf_inference_reachable && sae_reachable {
         "ok"
     } else {
         "degraded"
     };
 
-    let last_error = if engine_reachable && index_db_reachable {
+    let last_error = if index_db_reachable && hf_inference_reachable && sae_reachable {
         None
-    } else if !engine_reachable {
-        Some("engine service unreachable".to_string())
     } else {
-        Some("index database unreachable".to_string())
+        let mut errors = Vec::new();
+        if !index_db_reachable {
+            errors.push("index database unreachable");
+        }
+        if !hf_inference_reachable {
+            errors.push("HF inference service unreachable");
+        }
+        if !sae_reachable {
+            errors.push("SAE service unreachable");
+        }
+        Some(errors.join("; "))
     };
 
     Ok(Json(json!({
         "status": status,
-        "engine_reachable": engine_reachable,
         "index_db_reachable": index_db_reachable,
+        "hf_inference_reachable": hf_inference_reachable,
+        "sae_reachable": sae_reachable,
         "last_error": last_error
     })))
 }
