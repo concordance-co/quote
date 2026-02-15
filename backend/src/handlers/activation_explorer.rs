@@ -1,6 +1,6 @@
 //! Activation explorer handlers.
 //!
-//! Local-first API layer that proxies engine fullpass endpoints and maintains a
+//! API layer that runs HF inference + SAE feature extraction and maintains a
 //! lightweight run index in Postgres for fast listing/comparison queries.
 
 use axum::{
@@ -17,9 +17,7 @@ use uuid::Uuid;
 
 use crate::utils::AppState;
 
-const DEFAULT_ENGINE_BASE_URL: &str = "http://127.0.0.1:8000";
-const DEFAULT_RUN_TIMEOUT_SECS: u64 = 180;
-const DEFAULT_QUERY_TIMEOUT_SECS: u64 = 30;
+const HF_INFERENCE_TIMEOUT_SECS: u64 = 180;
 
 #[derive(Debug, Deserialize)]
 pub struct ActivationRunRequest {
@@ -153,13 +151,6 @@ pub struct ActivationRunPreview {
     pub sae_layer: Option<i32>,
     pub sae_top_k: Option<i32>,
     pub feature_timeline: Value,
-}
-
-fn engine_base_url() -> String {
-    std::env::var("ENGINE_BASE_URL")
-        .unwrap_or_else(|_| DEFAULT_ENGINE_BASE_URL.to_string())
-        .trim_end_matches('/')
-        .to_string()
 }
 
 fn build_http_client(timeout_secs: u64) -> Result<Client, (StatusCode, Json<Value>)> {
@@ -479,7 +470,7 @@ pub async fn run_activation(
         ));
     }
 
-    let client = build_http_client(DEFAULT_RUN_TIMEOUT_SECS)?;
+    let client = build_http_client(HF_INFERENCE_TIMEOUT_SECS)?;
     let hf_url = format!("{}/hf/generate", hf_base_url.trim_end_matches('/'));
 
     let hf_payload = json!({
