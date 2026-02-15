@@ -127,7 +127,7 @@ export default function ActivationExplorer() {
       return;
     }
     setError(null);
-    setStatus("Running activation fullpass...");
+    setStatus("Running activation analysis...");
     setIsRunning(true);
 
     try {
@@ -199,7 +199,7 @@ export default function ActivationExplorer() {
           <CardHeader>
             <CardTitle>Activation Explorer (v0)</CardTitle>
             <CardDescription>
-              Run local fullpass with optional inline SAE extraction and inspect activation data.
+              Run inference with SAE feature extraction and inspect activation data.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -375,7 +375,7 @@ export default function ActivationExplorer() {
         <Card>
           <CardHeader>
             <CardTitle>Activation Rows</CardTitle>
-            <CardDescription>Token/feature rows from engine activation store.</CardDescription>
+            <CardDescription>Preview rows from SAE timeline.</CardDescription>
           </CardHeader>
           <CardContent>
             {!selectedRows && <p className="text-sm text-muted-foreground">No rows loaded.</p>}
