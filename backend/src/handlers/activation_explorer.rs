@@ -1042,7 +1042,7 @@ pub async fn activation_health(
         false
     } else {
         let resp = client
-            .get(hf_base_url.trim_end_matches('/'))
+            .get(format!("{}/health", hf_base_url.trim_end_matches('/')))
             .send()
             .await;
         matches!(resp, Ok(r) if r.status().is_success())
@@ -1054,7 +1054,7 @@ pub async fn activation_health(
         false
     } else {
         let resp = client
-            .get(sae_base_url.trim_end_matches('/'))
+            .get(format!("{}/health", sae_base_url.trim_end_matches('/')))
             .send()
             .await;
         matches!(resp, Ok(r) if r.status().is_success())
