@@ -473,9 +473,22 @@ pub async fn run_activation(
     let client = build_http_client(HF_INFERENCE_TIMEOUT_SECS)?;
     let hf_url = format!("{}/hf/generate", hf_base_url.trim_end_matches('/'));
 
+    let sae_id = request
+        .sae_id
+        .clone()
+        .unwrap_or_else(|| "llama_scope_lxr_8x".to_string());
+    let sae_layer = request.sae_layer.unwrap_or(16);
+    let sae_top_k = request.sae_top_k.unwrap_or(20);
+
     let hf_payload = json!({
         "prompt": prompt,
         "max_tokens": max_tokens,
+        "temperature": request.temperature.unwrap_or(0.7),
+        "top_p": request.top_p.unwrap_or(0.9),
+        "inline_sae": sae_enabled,
+        "sae_id": sae_id,
+        "sae_layer": sae_layer,
+        "sae_top_k": sae_top_k,
     });
 
     let hf_result = client.post(&hf_url).json(&hf_payload).send().await;
@@ -510,8 +523,8 @@ pub async fn run_activation(
                     activation_rows_count: 0,
                     unique_features_count: 0,
                     sae_enabled,
-                    sae_id: request.sae_id.clone(),
-                    sae_layer: request.sae_layer,
+                    sae_id: Some(sae_id.clone()),
+                    sae_layer: Some(sae_layer),
                     duration_ms: 0,
                     status: "error".to_string(),
                     error_message: Some(message.clone()),
@@ -542,8 +555,8 @@ pub async fn run_activation(
                 activation_rows_count: 0,
                 unique_features_count: 0,
                 sae_enabled,
-                sae_id: request.sae_id.clone(),
-                sae_layer: request.sae_layer,
+                sae_id: Some(sae_id.clone()),
+                sae_layer: Some(sae_layer),
                 duration_ms: 0,
                 status: "error".to_string(),
                 error_message: Some(message.clone()),
@@ -581,14 +594,12 @@ pub async fn run_activation(
         .unwrap_or_default();
 
     // -----------------------------------------------------------------------
-    // Step 2: Call SAE extract with output_token_ids
+    // Step 2: Extract feature_timeline from the HF response (inline SAE)
     // -----------------------------------------------------------------------
-    let sae_top_k = request.sae_top_k.unwrap_or(20);
-    let feature_timeline = if sae_enabled && !output_token_ids.is_empty() {
-        call_sae_extract(&client, &output_token_ids, sae_top_k).await
-    } else {
-        Value::Array(vec![])
-    };
+    let feature_timeline = hf_json
+        .get("feature_timeline")
+        .cloned()
+        .unwrap_or_else(|| Value::Array(vec![]));
 
     // -----------------------------------------------------------------------
     // Step 3: Compute summary stats from feature_timeline
@@ -637,8 +648,8 @@ pub async fn run_activation(
         activation_rows_count,
         unique_features_count,
         sae_enabled,
-        sae_id: request.sae_id.clone(),
-        sae_layer: request.sae_layer,
+        sae_id: Some(sae_id.clone()),
+        sae_layer: Some(sae_layer),
         duration_ms,
         status: "ok".to_string(),
         error_message: None,
@@ -684,8 +695,8 @@ pub async fn run_activation(
         prompt: prompt.clone(),
         output_text: output_text.clone(),
         output_token_ids: output_token_ids.clone(),
-        sae_id: request.sae_id.clone(),
-        sae_layer: request.sae_layer,
+        sae_id: Some(sae_id.clone()),
+        sae_layer: Some(sae_layer),
         sae_top_k: Some(sae_top_k),
         feature_timeline: feature_timeline.clone(),
     };
@@ -721,6 +732,11 @@ pub async fn run_activation(
 
 /// Call the SAE feature extraction service. On failure, logs the error and
 /// returns an empty timeline (partial success — output is OK but no features).
+///
+/// NOTE: This function is no longer called from `run_activation()` since SAE
+/// extraction is now inline in the HF inference service. Retained for potential
+/// fallback or other use cases.
+#[allow(dead_code)]
 async fn call_sae_extract(client: &Client, token_ids: &[i64], top_k: i32) -> Value {
     let sae_base_url = std::env::var("PLAYGROUND_SAE_URL").unwrap_or_default();
     if sae_base_url.is_empty() {
@@ -1060,13 +1076,15 @@ pub async fn activation_health(
         matches!(resp, Ok(r) if r.status().is_success())
     };
 
-    let status = if index_db_reachable && hf_inference_reachable && sae_reachable {
+    // SAE is now inline in HF — status is "ok" when DB + HF are reachable.
+    // SAE service reachability is informational only.
+    let status = if index_db_reachable && hf_inference_reachable {
         "ok"
     } else {
         "degraded"
     };
 
-    let last_error = if index_db_reachable && hf_inference_reachable && sae_reachable {
+    let last_error = if index_db_reachable && hf_inference_reachable {
         None
     } else {
         let mut errors = Vec::new();
@@ -1076,9 +1094,6 @@ pub async fn activation_health(
         if !hf_inference_reachable {
             errors.push("HF inference service unreachable");
         }
-        if !sae_reachable {
-            errors.push("SAE service unreachable");
-        }
         Some(errors.join("; "))
     };
 
@@ -1086,7 +1101,7 @@ pub async fn activation_health(
         "status": status,
         "index_db_reachable": index_db_reachable,
         "hf_inference_reachable": hf_inference_reachable,
-        "sae_reachable": sae_reachable,
+        "sae_service_reachable": sae_reachable,
         "last_error": last_error
     })))
 }
