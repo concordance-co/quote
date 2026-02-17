@@ -29,6 +29,7 @@ hf_inference_image = (
         "accelerate",
         "hf_transfer",
         "pydantic",
+        "sae-lens",
     )
     .env(
         {
