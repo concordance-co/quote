@@ -730,7 +730,7 @@ async fn call_sae_extract(client: &Client, token_ids: &[i64], top_k: i32) -> Val
 
     let extract_url = format!("{}/extract_features", sae_base_url.trim_end_matches('/'));
     let payload = json!({
-        "token_ids": token_ids,
+        "tokens": token_ids,
         "top_k": top_k,
     });
 
