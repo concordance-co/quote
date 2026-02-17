@@ -1,8 +1,8 @@
 """
 Standalone Modal deploy for the HF Inference endpoint (activations playground).
 
-Fully isolated from the main engine app — no shared module-level code,
-no ADMIN_KEY, no MAX/modular dependencies. Deploy independently:
+Uses quote.runtime.generation for true inline SAE extraction and
+quote.backends.huggingface for model management. No MAX/modular dependencies.
 
     modal deploy src/quote/api/openai/hf_remote.py
 """
@@ -30,6 +30,8 @@ hf_inference_image = (
         "hf_transfer",
         "pydantic",
         "sae-lens",
+        "requests",
+        "numpy",
     )
     .env(
         {
@@ -39,7 +41,10 @@ hf_inference_image = (
             "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
         }
     )
-    .add_local_python_source("quote")
+    .add_local_python_source(
+        "quote",
+        "shared",
+    )
 )
 
 models_vol = modal.Volume.from_name("models", create_if_missing=True)
