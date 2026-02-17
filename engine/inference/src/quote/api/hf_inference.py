@@ -99,12 +99,14 @@ class _HFInferenceService:
         gen_kwargs: dict = {
             "max_new_tokens": req.max_tokens,
             "do_sample": req.temperature > 0,
+            "pad_token_id": self.tokenizer.eos_token_id,
         }
         if req.temperature > 0:
             gen_kwargs["temperature"] = req.temperature
             gen_kwargs["top_p"] = req.top_p
 
-        output_ids = self.model.generate(input_ids, **gen_kwargs)
+        attention_mask = (input_ids != self.tokenizer.pad_token_id).long()
+        output_ids = self.model.generate(input_ids, attention_mask=attention_mask, **gen_kwargs)
 
         # output_ids is the FULL sequence (prompt + completion)
         full_sequence_ids: list[int] = output_ids[0].tolist()
