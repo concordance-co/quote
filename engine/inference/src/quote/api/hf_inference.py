@@ -82,12 +82,18 @@ class _HFInferenceService:
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": req.prompt},
         ]
-        input_ids = self.tokenizer.apply_chat_template(
+        tokenized = self.tokenizer.apply_chat_template(
             messages,
             tokenize=True,
             add_generation_prompt=True,
             return_tensors="pt",
-        ).to(self.model.device)
+        )
+        # apply_chat_template may return a BatchEncoding dict instead of a raw tensor
+        # depending on the transformers version. Extract input_ids if needed.
+        if hasattr(tokenized, "input_ids"):
+            input_ids = tokenized.input_ids.to(self.model.device)
+        else:
+            input_ids = tokenized.to(self.model.device)
 
         # Build generation kwargs
         gen_kwargs: dict = {
