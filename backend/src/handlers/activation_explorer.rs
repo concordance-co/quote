@@ -1175,11 +1175,18 @@ pub async fn activation_health(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let client = build_http_client(5)?;
 
-    // Check Postgres reachability
-    let index_db_reachable = sqlx::query_scalar::<_, i64>("SELECT 1")
+    // Check Postgres reachability.
+    // Use i32 here to match Postgres' default integer type for `SELECT 1`.
+    let index_db_reachable = match sqlx::query_scalar::<_, i32>("SELECT 1")
         .fetch_one(&state.db_pool)
         .await
-        .is_ok();
+    {
+        Ok(_) => true,
+        Err(e) => {
+            tracing::error!(error = %e, "activation health database check failed");
+            false
+        }
+    };
 
     // Check HF inference reachability
     let hf_base_url = std::env::var("PLAYGROUND_ACTIVATIONS_HF_URL").unwrap_or_default();

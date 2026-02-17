@@ -86,6 +86,41 @@ impl ModelEndpoints {
     }
 }
 
+fn model_endpoint_env_var(model: &str) -> Option<&'static str> {
+    match model {
+        "qwen-14b" => Some("PLAYGROUND_QWEN_14B_URL"),
+        "llama-3.1-8b" => Some("PLAYGROUND_LLAMA_8B_URL"),
+        _ => None,
+    }
+}
+
+fn resolve_model_endpoint<'a>(
+    endpoints: &'a ModelEndpoints,
+    model: &str,
+) -> Result<&'a str, (StatusCode, Json<serde_json::Value>)> {
+    if let Some(endpoint) = endpoints.get_url(model) {
+        return Ok(endpoint);
+    }
+
+    if let Some(env_var) = model_endpoint_env_var(model) {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "error": format!("Model endpoint not configured for {}. Missing/empty {}.", model, env_var),
+                "code": 503
+            })),
+        ));
+    }
+
+    Err((
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::json!({
+            "error": format!("Unknown model: {}", model),
+            "code": 400
+        })),
+    ))
+}
+
 /// Available injection positions
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -943,15 +978,7 @@ pub async fn upload_mod(
 
     let endpoints = ModelEndpoints::from_env();
 
-    let endpoint = endpoints.get_url(&request.model).ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": format!("Unknown model: {}", request.model),
-                "code": 400
-            })),
-        )
-    })?;
+    let endpoint = resolve_model_endpoint(&endpoints, &request.model)?;
 
     // Get admin key for registering with model server
     let admin_key = env::var("PLAYGROUND_ADMIN_KEY").map_err(|_| {
@@ -1093,15 +1120,7 @@ pub async fn run_inference(
 
     let endpoints = ModelEndpoints::from_env();
 
-    let endpoint = endpoints.get_url(&request.model).ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": format!("Unknown model: {}", request.model),
-                "code": 400
-            })),
-        )
-    })?;
+    let endpoint = resolve_model_endpoint(&endpoints, &request.model)?;
 
     let base_model_id = endpoints.get_model_id(&request.model).ok_or_else(|| {
         (
@@ -1556,4 +1575,3 @@ pub async fn analyze_features(
         top_features,
     }))
 }
-
