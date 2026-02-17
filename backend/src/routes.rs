@@ -13,7 +13,7 @@ use crate::{
     handlers::{
         activation_explorer::{
             activation_health, get_activation_rows, get_activation_run_summary, get_feature_deltas,
-            get_top_features, list_activation_runs, run_activation,
+            get_top_features, list_activation_runs, post_extract_features, run_activation,
         },
         auth::{
             bootstrap_admin_key, create_api_key, get_current_user, list_api_keys as list_auth_keys,
@@ -416,6 +416,14 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/playground/activations/run",
             post(run_activation).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/extract",
+            post(post_extract_features).options(|| async { StatusCode::NO_CONTENT }),
+        )
+        .route(
+            "/playground/activations/extract/",
+            post(post_extract_features).options(|| async { StatusCode::NO_CONTENT }),
         )
         .route(
             "/playground/activations/runs",

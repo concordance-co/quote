@@ -118,6 +118,14 @@ pub struct TopFeaturesQuery {
     pub sae_layer: Option<i64>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ExtractFeaturesRequest {
+    pub token_ids: Vec<i64>,
+    pub sae_id: Option<String>,
+    pub sae_layer: Option<i32>,
+    pub top_k: Option<i32>,
+}
+
 #[derive(Debug)]
 struct RunIndexUpsert {
     request_id: String,
@@ -778,6 +786,85 @@ async fn call_sae_extract(client: &Client, token_ids: &[i64], top_k: i32) -> Val
     }
 }
 
+/// Call the HF inference service's `/hf/extract` endpoint for post-hoc SAE
+/// feature extraction on pre-existing token IDs.
+///
+/// Returns the `feature_timeline` array on success, or an error tuple suitable
+/// for returning from an Axum handler.
+async fn call_hf_extract(
+    token_ids: &[i64],
+    sae_id: Option<&str>,
+    sae_layer: Option<i32>,
+    top_k: Option<i32>,
+) -> Result<Value, (StatusCode, Json<Value>)> {
+    let hf_base_url = std::env::var("PLAYGROUND_ACTIVATIONS_HF_URL").unwrap_or_default();
+    if hf_base_url.is_empty() {
+        return Err(explorer_error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "HF_NOT_CONFIGURED",
+            "PLAYGROUND_ACTIVATIONS_HF_URL is not configured",
+            None,
+        ));
+    }
+
+    let client = build_http_client(HF_INFERENCE_TIMEOUT_SECS)?;
+    let url = format!("{}/hf/extract", hf_base_url.trim_end_matches('/'));
+
+    let mut payload = json!({ "token_ids": token_ids });
+    if let Some(id) = sae_id {
+        payload["sae_id"] = Value::String(id.to_string());
+    }
+    if let Some(layer) = sae_layer {
+        payload["sae_layer"] = json!(layer);
+    }
+    if let Some(k) = top_k {
+        payload["sae_top_k"] = json!(k);
+    }
+
+    let response = client.post(&url).json(&payload).send().await.map_err(|e| {
+        if e.is_timeout() {
+            explorer_error(
+                StatusCode::GATEWAY_TIMEOUT,
+                "HF_TIMEOUT",
+                format!("HF extract timed out: {e}"),
+                None,
+            )
+        } else {
+            explorer_error(
+                StatusCode::BAD_GATEWAY,
+                "HF_UNAVAILABLE",
+                format!("HF extract request failed: {e}"),
+                None,
+            )
+        }
+    })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(explorer_error(
+            StatusCode::BAD_GATEWAY,
+            "HF_BAD_RESPONSE",
+            format!("HF extract returned {status}: {body}"),
+            None,
+        ));
+    }
+
+    let hf_json: Value = response.json().await.map_err(|e| {
+        explorer_error(
+            StatusCode::BAD_GATEWAY,
+            "HF_BAD_RESPONSE",
+            format!("failed to parse HF extract response json: {e}"),
+            None,
+        )
+    })?;
+
+    Ok(hf_json
+        .get("feature_timeline")
+        .cloned()
+        .unwrap_or_else(|| Value::Array(vec![])))
+}
+
 /// Count unique feature IDs across all positions in a feature_timeline.
 fn count_unique_features(timeline: &Value) -> i32 {
     let entries = match timeline.as_array() {
@@ -1038,6 +1125,43 @@ pub async fn get_top_features(
     Ok(Json(json!({
         "request_id": request_id,
         "items": items,
+    })))
+}
+
+pub async fn post_extract_features(
+    State(_state): State<AppState>,
+    Json(request): Json<ExtractFeaturesRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if request.token_ids.is_empty() {
+        return Err(explorer_error(
+            StatusCode::BAD_REQUEST,
+            "INVALID_ARGUMENT",
+            "token_ids must be a non-empty array",
+            None,
+        ));
+    }
+    if let Some(top_k) = request.top_k {
+        if !(1..=200).contains(&top_k) {
+            return Err(explorer_error(
+                StatusCode::BAD_REQUEST,
+                "INVALID_ARGUMENT",
+                "top_k must be between 1 and 200",
+                None,
+            ));
+        }
+    }
+
+    let feature_timeline = call_hf_extract(
+        &request.token_ids,
+        request.sae_id.as_deref(),
+        request.sae_layer,
+        request.top_k,
+    )
+    .await?;
+
+    Ok(Json(json!({
+        "status": "ok",
+        "feature_timeline": feature_timeline,
     })))
 }
 
