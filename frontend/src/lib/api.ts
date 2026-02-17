@@ -1063,7 +1063,8 @@ export interface ActivationExplorerHealthResponse {
   status: "ok" | "degraded";
   index_db_reachable: boolean;
   hf_inference_reachable: boolean;
-  sae_reachable: boolean;
+  sae_reachable?: boolean;
+  sae_service_reachable?: boolean;
   last_error: string | null;
 }
 

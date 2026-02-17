@@ -38,6 +38,22 @@ Important env variables:
 - activations: `CONCORDANCE_ACTIVATIONS_ENABLED`, `CONCORDANCE_ACTIVATIONS_DB_PATH`, `CONCORDANCE_ACTIVATIONS_PARQUET_PATH`
 - SAE: `CONCORDANCE_SAE_ENABLED`, `CONCORDANCE_SAE_MODE`, `CONCORDANCE_SAE_ID`, `CONCORDANCE_SAE_LAYER`, `CONCORDANCE_SAE_TOP_K`
 
+### 2.1 Runtime Variants (MAX vs HF)
+
+The codebase currently exposes two runtime paths that are both used by the product:
+
+- MAX OpenAI-compatible serving path (used by base Playground):
+  - server entrypoint: `engine/inference/src/quote/api/openai/local.py:4-12`
+  - MAX worker/queue imports: `engine/inference/src/quote/api/openai/local.py:32-49`
+- HF inference path (used by Activation Explorer):
+  - service entrypoint: `engine/inference/src/quote/api/hf_inference.py:1-13`
+  - modal deploy wrapper explicitly notes no MAX dependency: `engine/inference/src/quote/api/openai/hf_remote.py:1-7`
+
+Important implementation detail:
+
+- `create_backend()` in runtime config currently supports only `huggingface` backend type and rejects others (`engine/inference/src/quote/runtime/config.py:92-98`)
+- the MAX OpenAI server path does not use that `create_backend()` branch; it uses MAX pipeline/worker stack directly (`engine/inference/src/quote/api/openai/local.py:32-49`)
+
 ## 3. Backend Abstraction and HF Implementation
 
 Contract is defined in `engine/inference/src/quote/backends/interface.py:46` (`Backend` protocol).
@@ -123,7 +139,7 @@ Finalize payload shape mirrors backend `FullIngestPayload`.
 
 ## 7. API Surfaces
 
-## 7.1 OpenAI-Compatible Local Server
+## 7.1 OpenAI-Compatible Local Server (MAX Stack)
 
 Factory: `engine/inference/src/quote/api/openai/local.py:625`.
 
@@ -143,7 +159,7 @@ Chat endpoint behavior:
 - merges worker trace snapshot into ingest accumulator before finalize (`engine/inference/src/quote/api/openai/local.py:1478-1517`)
 - emits tool-call style response via helper (`engine/inference/src/quote/api/openai/local.py:1561`)
 
-## 7.2 Standalone HF Inference Service
+## 7.2 Standalone HF Inference Service (HF Stack)
 
 Factory: `engine/inference/src/quote/api/hf_inference.py:380`.
 
@@ -220,12 +236,22 @@ This is intentionally process-local and ephemeral.
 
 ```text
 Client /v1/chat/completions
-  -> openai/local chat handler
+  -> openai/local chat handler (MAX stack)
   -> token generator + mod dispatch loop
   -> ingest accumulator finalized
   -> POST backend /v1/ingest
   -> backend stores + caches + broadcasts
   -> frontend list/detail/stream consume data
+```
+
+Activation Explorer uses a different path:
+
+```text
+Frontend /activations
+  -> backend /playground/activations/run
+  -> engine HF service /hf/generate
+  -> backend stores activation_run_index + activation_run_previews
+  -> frontend reads summary/rows/top-features
 ```
 
 ## 12. Local Usage

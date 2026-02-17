@@ -23,13 +23,14 @@ Main route composition is in `frontend/src/App.tsx:625`.
 
 Public routes (no auth gate):
 
-- `/playground` (`frontend/src/App.tsx:633`)
-- `/playground/activations` (`frontend/src/App.tsx:635`)
-- `/share/:publicToken` (`frontend/src/App.tsx:639`)
-- `/share/:collectionToken/request/:requestId` (`frontend/src/App.tsx:643`)
-- `/share/request/:publicToken` (`frontend/src/App.tsx:647`)
+- `/playground` (`frontend/src/App.tsx:634`)
+- `/activations` (`frontend/src/App.tsx:635`)
+- legacy redirect: `/playground/activations` -> `/activations` (`frontend/src/App.tsx:637-638`)
+- `/share/:publicToken` (`frontend/src/App.tsx:641`)
+- `/share/:collectionToken/request/:requestId` (`frontend/src/App.tsx:645`)
+- `/share/request/:publicToken` (`frontend/src/App.tsx:649`)
 
-Authenticated app shell is catch-all `/*` via `AppContent` (`frontend/src/App.tsx:651`).
+Authenticated app shell is catch-all `/*` via `AppContent` (`frontend/src/App.tsx:653`).
 
 ## 3. Authentication Model
 
@@ -158,6 +159,21 @@ On mount, it ensures a persistent playground key:
 - analyze features (`frontend/src/components/Playground.tsx:1072`, API wrapper at `frontend/src/lib/api.ts:956`)
 - display panel and timeline in the lower results area (`frontend/src/components/Playground.tsx:1863+`)
 
+### 8.4 Runtime Mapping (MAX Path)
+
+`/playground` is wired to the MAX OpenAI-compatible engine path:
+
+- frontend run call: `runPlaygroundInference` (`frontend/src/components/Playground.tsx:934`)
+- API route used: `POST /playground/inference` (`frontend/src/lib/api.ts:898`)
+- backend handler: `run_inference` (`backend/src/handlers/playground.rs:1080`)
+- backend target call: `POST {model_endpoint}/v1/chat/completions` (`backend/src/handlers/playground.rs:1123`)
+- model endpoint selection comes from `PLAYGROUND_QWEN_14B_URL` / `PLAYGROUND_LLAMA_8B_URL` (`backend/src/handlers/playground.rs:59-70`)
+
+SAE in this page is post-hoc sidecar style (separate endpoints):
+
+- `POST /playground/extract-features` -> SAE server `/extract_features` (`backend/src/handlers/playground.rs:1283`, `backend/src/handlers/playground.rs:1321`)
+- `POST /playground/analyze-features` -> SAE server `/analyze_features` (`backend/src/handlers/playground.rs:1424`, `backend/src/handlers/playground.rs:1473`)
+
 ## 9. Activation Explorer UI
 
 Component: `frontend/src/components/ActivationExplorer.tsx:59`.
@@ -168,6 +184,17 @@ Core flow:
 - run activation request (`frontend/src/components/ActivationExplorer.tsx:124-155`)
 - load details (summary, rows, top features) for selected request (`frontend/src/components/ActivationExplorer.tsx:98-118`)
 
+### 9.1 Runtime Mapping (HF Path)
+
+`/activations` uses the HF activation runtime path:
+
+- frontend run call: `runActivationExplorer` (`frontend/src/components/ActivationExplorer.tsx:135`)
+- API route used: `POST /playground/activations/run` (`frontend/src/lib/api.ts:1075`)
+- backend handler: `run_activation` (`backend/src/handlers/activation_explorer.rs:393`)
+- backend target call: `POST {PLAYGROUND_ACTIVATIONS_HF_URL}/hf/generate` (`backend/src/handlers/activation_explorer.rs:471-483`)
+
+Unlike `/playground`, this path requests inline SAE in the HF call payload (`inline_sae`, `sae_id`, `sae_layer`, `sae_top_k`) (`backend/src/handlers/activation_explorer.rs:491-500`).
+
 Feature deltas UI is compiled but disabled:
 
 - `FEATURE_DELTAS_ENABLED = false` (`frontend/src/components/ActivationExplorer.tsx:24`)
@@ -175,12 +202,10 @@ Feature deltas UI is compiled but disabled:
 
 ## 10. Data Contract Notes
 
-Important contract mismatch to track:
+Activation health payload is backward-compatible:
 
-- frontend health type expects `sae_reachable` (`frontend/src/lib/api.ts:1066`)
-- backend currently returns `sae_service_reachable` (`backend/src/handlers/activation_explorer.rs:1228`)
-
-This can cause missing/undefined SAE health values in UI.
+- backend now returns both `sae_reachable` and `sae_service_reachable` (`backend/src/handlers/activation_explorer.rs:1224+`)
+- frontend type accepts both fields (`frontend/src/lib/api.ts:1062+`)
 
 ## 11. Environment and Runtime
 

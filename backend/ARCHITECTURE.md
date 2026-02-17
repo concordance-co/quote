@@ -74,6 +74,9 @@ Important route groups:
 - playground: `/playground/*`
 - activation explorer: `/playground/activations/*`
 
+Frontend page mapping note:
+- user-facing Activation Explorer page route is `/activations` in the SPA, which calls this backend API namespace.
+
 Ingest and body-limit wiring:
 
 ```rust
@@ -146,6 +149,11 @@ Enums are PascalCase-compatible with engine output:
 - `EventType`: `Prefilled | ForwardPass | Added | Sampled` (`backend/src/handlers/ingest/payload.rs:194`)
 - `ActionType`: includes `AdjustedPrefill`, `ForceTokens`, `Backtrack`, etc. (`backend/src/handlers/ingest/payload.rs:216`)
 
+The ingest payload is intentionally runtime-agnostic:
+
+- it stores trace semantics (`request/events/mod_calls/mod_logs/actions`) rather than an engine discriminator
+- there is no explicit `engine_type` field in `RequestRecord` (`backend/src/handlers/ingest/payload.rs:29-59`)
+
 ## 7. Read Path (Logs API)
 
 ### 7.1 List + Stream
@@ -195,6 +203,18 @@ Key endpoints:
 
 `analyze_features` has per-key in-memory rate limiting (5 req / 60s) implemented at `backend/src/handlers/playground.rs:20-47`.
 
+### 9.1 Runtime Path for `/playground` (MAX + Sidecar SAE)
+
+`run_inference` resolves model endpoints from env (`ModelEndpoints::from_env`) and forwards to OpenAI-compatible chat:
+
+- endpoint routing: `PLAYGROUND_QWEN_14B_URL` / `PLAYGROUND_LLAMA_8B_URL` (`backend/src/handlers/playground.rs:59-70`)
+- target path: `POST {endpoint}/v1/chat/completions` (`backend/src/handlers/playground.rs:1123`)
+
+This path is the base Playground runtime and is distinct from Activation Explorer. SAE behavior for this path is post-hoc sidecar calls:
+
+- `extract_features` forwards to `{PLAYGROUND_SAE_URL}/extract_features` (`backend/src/handlers/playground.rs:1321`)
+- `analyze_features` forwards to `{PLAYGROUND_SAE_URL}/analyze_features` (`backend/src/handlers/playground.rs:1473`)
+
 ## 10. Activation Explorer API
 
 Defined in `backend/src/handlers/activation_explorer.rs`.
@@ -207,6 +227,12 @@ Primary flow (`run_activation`, `backend/src/handlers/activation_explorer.rs:393
 4. persist metadata/index row (`backend/src/handlers/activation_explorer.rs:667`)
 5. persist preview payload (`backend/src/handlers/activation_explorer.rs:712`)
 
+Activation Explorer uses a separate runtime path from base Playground:
+
+- HF endpoint base from `PLAYGROUND_ACTIVATIONS_HF_URL` (`backend/src/handlers/activation_explorer.rs:471`)
+- generation target is `{HF_BASE}/hf/generate` (`backend/src/handlers/activation_explorer.rs:482`)
+- request includes inline SAE fields (`backend/src/handlers/activation_explorer.rs:491-500`)
+
 Query endpoints:
 
 - list runs: `backend/src/handlers/activation_explorer.rs:887`
@@ -217,7 +243,7 @@ Query endpoints:
 
 `feature-deltas` is currently not implemented (returns 501): `backend/src/handlers/activation_explorer.rs:1084-1094`.
 
-Health payload includes `sae_service_reachable` (`backend/src/handlers/activation_explorer.rs:1228`).
+Health payload includes `sae_service_reachable` and compatibility alias `sae_reachable` (`backend/src/handlers/activation_explorer.rs:1224+`).
 
 ## 11. Database Schema
 
@@ -270,9 +296,9 @@ Relationship shape:
 
 ## 13. Known Integration Notes
 
-- Frontend health type currently expects `sae_reachable`, but backend returns `sae_service_reachable`.
-  - frontend type: `frontend/src/lib/api.ts:1062-1067`
-  - backend payload: `backend/src/handlers/activation_explorer.rs:1228`
+- Activation health keeps both SAE field names for compatibility:
+  - frontend type: `frontend/src/lib/api.ts:1062+`
+  - backend payload: `backend/src/handlers/activation_explorer.rs:1224+`
 
 ## 14. Local Usage
 

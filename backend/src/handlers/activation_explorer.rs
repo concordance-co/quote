@@ -461,7 +461,8 @@ pub async fn run_activation(
         .model_id
         .clone()
         .unwrap_or_else(|| "meta-llama/Llama-3.1-8B-Instruct".to_string());
-    let sae_enabled = request.inline_sae.unwrap_or(true);
+    let collect_activations = request.collect_activations.unwrap_or(true);
+    let sae_enabled = collect_activations && request.inline_sae.unwrap_or(true);
     let prompt_chars = prompt.chars().count() as i32;
     let max_tokens = request.max_tokens.unwrap_or(128);
 
@@ -488,16 +489,20 @@ pub async fn run_activation(
     let sae_layer = request.sae_layer.unwrap_or(16);
     let sae_top_k = request.sae_top_k.unwrap_or(20);
 
-    let hf_payload = json!({
+    let mut hf_payload = json!({
         "prompt": prompt,
         "max_tokens": max_tokens,
         "temperature": request.temperature.unwrap_or(0.7),
         "top_p": request.top_p.unwrap_or(0.9),
+        "top_k": request.top_k.unwrap_or(1),
         "inline_sae": sae_enabled,
         "sae_id": sae_id,
         "sae_layer": sae_layer,
         "sae_top_k": sae_top_k,
     });
+    if let Some(path) = request.sae_local_path.clone() {
+        hf_payload["sae_local_path"] = Value::String(path);
+    }
 
     let hf_result = client.post(&hf_url).json(&hf_payload).send().await;
 
@@ -1225,6 +1230,7 @@ pub async fn activation_health(
         "status": status,
         "index_db_reachable": index_db_reachable,
         "hf_inference_reachable": hf_inference_reachable,
+        "sae_reachable": sae_reachable,
         "sae_service_reachable": sae_reachable,
         "last_error": last_error
     })))

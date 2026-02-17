@@ -13,12 +13,18 @@ Frontend (React/TS)
   -> Backend (Rust/Axum + Postgres)
   <- WebSocket stream (new logs)
 
-Engine (Python inference + mods)
-  -> Backend /v1/ingest
+Playground page (/playground)
+  -> Backend /playground/inference
+  -> MAX OpenAI-compatible engine stack (/v1/chat/completions)
+  -> Backend /v1/ingest (trace persistence)
 
-Playground + Activation Explorer UI
-  -> Backend /playground/*
-  -> Backend proxies to HF/SAE services where needed
+Activation Explorer page (/activations)
+  -> Backend /playground/activations/*
+  -> HF inference service (/hf/generate) with inline SAE
+
+Playground SAE sidecar
+  -> Backend /playground/extract-features + /playground/analyze-features
+  -> SAE service (/extract_features, /analyze_features)
 ```
 
 ## 2. Core End-to-End Flows
@@ -36,15 +42,22 @@ Playground + Activation Explorer UI
 
 1. Frontend gets temporary playground API key (`/playground/api-key`)
 2. Frontend optionally generates + uploads mod
-3. Frontend triggers `/playground/inference`
+3. Frontend triggers `/playground/inference` -> backend forwards to MAX OpenAI-compatible `/v1/chat/completions`
 4. Frontend polls `/logs` + `/logs/:request_id` for full trace data
+5. Optional SAE panel uses separate post-hoc sidecar endpoints (`/playground/extract-features`, `/playground/analyze-features`)
 
 ### 2.3 Activation Explorer Flow
 
-1. Frontend calls `/playground/activations/run`
+1. Frontend `/activations` calls `/playground/activations/run`
 2. Backend calls HF inference service (`/hf/generate`)
 3. Backend derives/stores run summary + preview timeline
 4. Frontend queries summary/rows/top-features endpoints for inspection
+
+### 2.4 Engine Split Summary
+
+- Base Playground: MAX OpenAI-compatible runtime + post-hoc SAE sidecar
+- Activation Explorer: HF runtime + inline SAE in generation call
+- Shared expectation: downstream trace/mod/action semantics stay mostly engine-agnostic at backend ingest/storage boundaries
 
 ## 3. Data Ownership
 
@@ -60,7 +73,6 @@ Playground + Activation Explorer UI
 
 ## 5. Integration Notes
 
-- `frontend/src/lib/api.ts` health typing currently expects `sae_reachable`
-- backend activation health currently returns `sae_service_reachable`
+- activation health includes both `sae_reachable` and `sae_service_reachable` for compatibility
 
 See implementation details and code anchors in the subproject docs linked above.

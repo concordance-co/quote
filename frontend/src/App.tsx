@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Link,
+  Navigate,
   useLocation,
 } from "react-router-dom";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
@@ -430,7 +431,7 @@ function PlaygroundPage() {
               className="h-7 text-xs px-2 shrink-0 gap-1"
               asChild
             >
-              <Link to="/playground/activations">
+              <Link to="/activations">
                 <Activity className="h-3 w-3" />
                 Activations
               </Link>
@@ -546,7 +547,7 @@ function ActivationExplorerPage() {
               className="h-7 text-xs px-2 shrink-0 gap-1"
               asChild
             >
-              <Link to="/playground/activations">
+              <Link to="/activations">
                 <Activity className="h-3 w-3" />
                 Activations
               </Link>
@@ -631,9 +632,10 @@ function App() {
             <Routes>
               {/* Public routes - no auth required */}
               <Route path="/playground" element={<PlaygroundPage />} />
+              <Route path="/activations" element={<ActivationExplorerPage />} />
               <Route
                 path="/playground/activations"
-                element={<ActivationExplorerPage />}
+                element={<Navigate to="/activations" replace />}
               />
               <Route
                 path="/share/:publicToken"
