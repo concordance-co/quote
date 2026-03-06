@@ -51,7 +51,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-white/20 bg-[rgba(16,20,28,0.92)] backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
@@ -65,7 +65,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             {error && (
-              <div className="flex items-center gap-2 p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-md border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 p-3 text-sm text-red-200 bg-red-900/35 rounded-md border border-red-700/60">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>

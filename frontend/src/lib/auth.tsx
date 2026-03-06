@@ -58,6 +58,11 @@ interface ValidateKeyResponse {
   message: string;
 }
 
+type ValidateApiKeyResult = {
+  user: AuthUser | null;
+  error: string | null;
+};
+
 // Provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -70,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Validate an API key against the backend
   const validateApiKey = useCallback(
-    async (apiKey: string): Promise<AuthUser | null> => {
+    async (apiKey: string): Promise<ValidateApiKeyResult> => {
       try {
         const response = await axios.get<ValidateKeyResponse>(
           `${API_BASE_URL}/auth/validate`,
@@ -83,15 +88,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (response.data.valid && response.data.name) {
           return {
-            name: response.data.name,
-            allowedApiKey: response.data.allowed_api_key,
-            isAdmin: response.data.is_admin,
+            user: {
+              name: response.data.name,
+              allowedApiKey: response.data.allowed_api_key,
+              isAdmin: response.data.is_admin,
+            },
+            error: null,
           };
         }
-        return null;
+        return {
+          user: null,
+          error: "Invalid API key. Please check your key and try again.",
+        };
       } catch (error) {
-        console.error("API key validation failed:", error);
-        return null;
+        if (axios.isAxiosError(error)) {
+          if (!error.response) {
+            return {
+              user: null,
+              error:
+                "Cannot reach the API service. Confirm backend is running on localhost:8080.",
+            };
+          }
+
+          if (error.response.status >= 500) {
+            return {
+              user: null,
+              error:
+                "Authentication service returned a server error. Check backend logs/config.",
+            };
+          }
+        }
+
+        return {
+          user: null,
+          error: "Invalid API key. Please check your key and try again.",
+        };
       }
     },
     []
@@ -103,7 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
 
       if (storedKey) {
-        const user = await validateApiKey(storedKey);
+        const result = await validateApiKey(storedKey);
+        const user = result.user;
         if (user) {
           setState({
             isAuthenticated: true,
@@ -136,7 +168,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (apiKey: string): Promise<boolean> => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-      const user = await validateApiKey(apiKey);
+      const result = await validateApiKey(apiKey);
+      const user = result.user;
 
       if (user) {
         localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
@@ -152,7 +185,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: "Invalid API key. Please check your key and try again.",
+          error:
+            result.error ||
+            "Invalid API key. Please check your key and try again.",
         }));
         return false;
       }

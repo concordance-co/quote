@@ -164,9 +164,11 @@ function AppContent() {
   // Show login prompt if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="h-screen bg-background text-foreground flex flex-col">
+      <div className="relative h-screen overflow-hidden bg-background text-foreground flex flex-col">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(239,51,51,0.16),transparent_35%),radial-gradient(circle_at_78%_8%,rgba(74,111,224,0.22),transparent_32%),radial-gradient(circle_at_50%_85%,rgba(46,140,67,0.16),transparent_28%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_40%,rgba(255,255,255,0)_100%)]" />
         {/* Header */}
-        <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <header className="sticky top-0 z-50 w-full border-b border-white/15 bg-background/70 backdrop-blur-xl">
           <div className="container flex h-10 max-w-5xl items-center">
             {/* Logo */}
             <div className="flex items-center gap-2">
@@ -175,22 +177,22 @@ function AppContent() {
                 alt="Concordance"
                 className="w-6 h-6 object-contain"
               />
-              <span className="font-semibold text-sm">Concordance</span>
+              <span className="font-display text-sm">Concordance</span>
             </div>
           </div>
         </header>
 
         {/* Login Content */}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="max-w-md w-full mx-4">
+        <div className="relative z-[1] flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/20 bg-[rgba(255,255,255,0.1)] p-8 shadow-[0_24px_60px_rgba(8,8,8,0.35)] backdrop-blur-md">
             <div className="text-center mb-8">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mx-auto mb-4">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full border border-white/25 bg-white/10 mx-auto mb-4">
                 <Key className="w-8 h-8 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold mb-2">
-                Welcome to Concordance
+              <h1 className="font-display text-[clamp(1.75rem,3.8vw,2.35rem)] leading-[1.05] mb-2">
+                Concordance Operator Console
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Sign in with your inference API key to view your logs and data.
               </p>
             </div>
@@ -209,7 +211,7 @@ function AppContent() {
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-border shrink-0">
+        <footer className="relative z-[1] border-t border-white/10 shrink-0">
           <div className="container flex items-center justify-between h-7 max-w-5xl text-2xs text-muted-foreground">
             <span>Concordance v1.0</span>
           </div>
