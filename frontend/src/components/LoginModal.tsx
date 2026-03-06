@@ -8,6 +8,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  FormField,
+  formFieldInputClassName,
+} from "@/components/design-system/FormField";
 import { useAuth } from "@/lib/auth";
 import { Key, Loader2, AlertCircle, LogOut, User } from "lucide-react";
 
@@ -66,28 +70,21 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                 <span>{error}</span>
               </div>
             )}
-            <div className="space-y-2">
-              <label
-                htmlFor="apiKey"
-                className="text-sm font-medium text-foreground"
-              >
-                API Key
-              </label>
+            <FormField
+              label="API Key"
+              helperText="Use the same API key you use for inference requests, or an admin key provided by your administrator."
+            >
               <input
                 id="apiKey"
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your API key..."
-                className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
+                className={formFieldInputClassName}
                 disabled={isLoading}
                 autoFocus
               />
-              <p className="text-xs text-muted-foreground">
-                Use the same API key you use for inference requests, or an admin
-                key provided by your administrator.
-              </p>
-            </div>
+            </FormField>
           </div>
           <DialogFooter>
             <Button

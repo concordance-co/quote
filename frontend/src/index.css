@@ -1,5 +1,5 @@
-/* Import distinctive fonts - must be first */
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+/* Import brand fonts - must be first */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -7,6 +7,22 @@
 
 @layer base {
   :root {
+    --font-display:
+      "Sora", "Avenir Next", "SF Pro Display", "Helvetica Neue", Helvetica,
+      Arial, sans-serif;
+    --font-sans:
+      "Manrope", "Avenir Next", "SF Pro Text", "Helvetica Neue", Helvetica,
+      Arial, sans-serif;
+    --font-mono:
+      "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", Menlo, Monaco,
+      Consolas, "Liberation Mono", "Courier New", monospace;
+
+    --brand-red: #ef3333;
+    --brand-ink: #080808;
+    --brand-blue: #4a6fe0;
+    --brand-green: #2e8c43;
+    --brand-yellow: #f5cd2f;
+
     /* Dark theme as default */
     --background: 220 15% 8%;
     --foreground: 210 20% 92%;
@@ -68,9 +84,13 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings:
       "rlig" 1,
-      "calt" 1;
+      "calt" 1,
+      "kern" 1,
+      "liga" 1;
+    text-rendering: optimizeLegibility;
+    font-family: var(--font-sans);
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   html {
@@ -84,7 +104,10 @@
   h4,
   h5,
   h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-medium tracking-tight text-balance;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: 1.08;
   }
 
   h1 {
@@ -95,6 +118,16 @@
   }
   h3 {
     @apply text-base;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
   }
 }
 

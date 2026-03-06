@@ -5,24 +5,25 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full border text-xs font-medium tracking-[0.04em] ring-offset-background transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default:
+          "border-black/45 bg-black/90 text-white shadow-[0_1px_0_rgba(255,255,255,0.16)_inset] hover:-translate-y-px hover:bg-black hover:shadow-[0_10px_22px_rgba(8,8,8,0.28)]",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "border-red-400/50 bg-red-500/20 text-red-200 hover:bg-red-500/30",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border-white/35 bg-transparent text-foreground hover:-translate-y-px hover:bg-white/10",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border-white/30 bg-white/16 text-foreground backdrop-blur-sm hover:-translate-y-px hover:bg-white/24",
+        ghost: "border-transparent bg-transparent text-foreground hover:bg-white/10",
+        link: "border-transparent bg-transparent text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-8 px-3 py-1.5",
-        sm: "h-7 rounded px-2",
-        lg: "h-9 rounded px-4",
+        default: "h-8 px-3.5 py-1.5",
+        sm: "h-7 px-2.5",
+        lg: "h-9 px-5",
         icon: "h-8 w-8",
       },
     },
