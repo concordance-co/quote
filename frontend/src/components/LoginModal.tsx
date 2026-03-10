@@ -144,7 +144,9 @@ export function UserMenu({
         size="sm"
         className={cn(
           "h-7 px-0 font-mono text-xs uppercase tracking-[0.08em]",
-          isInk ? "text-white/85 hover:text-white" : "text-[var(--brand-ink)] hover:text-white",
+          isInk
+            ? "text-white/85 hover:text-white"
+            : "text-[var(--brand-ink)] hover:text-[var(--brand-ink)] hover:bg-black/10",
         )}
         onClick={onLogout}
       >

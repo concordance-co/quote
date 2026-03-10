@@ -33,6 +33,7 @@ export default function SiteHeader({
 }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navTone = "red";
+  const isInk = shellTone === "ink";
 
   return (
     <header className="site-header sticky top-0 z-50 border-b border-black/25 py-1">
@@ -45,7 +46,7 @@ export default function SiteHeader({
         <BrandLockup
           href="/"
           size="md"
-          tone="dark"
+          tone={isInk ? "light" : "dark"}
           className="mr-2 shrink-0 uppercase"
           labelClassName="font-extrabold uppercase tracking-[0.045em]"
         />
@@ -90,7 +91,7 @@ export default function SiteHeader({
             external
           />
           <div className="hidden xl:block">
-            <GitHubStarButton />
+            <GitHubStarButton tone={shellTone} />
           </div>
         </div>
 
@@ -105,7 +106,12 @@ export default function SiteHeader({
           {onToggleShellTone && (
             <button
               onClick={onToggleShellTone}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-black/35 bg-white/25 text-[var(--brand-ink)] transition-colors hover:bg-white/35"
+              className={cn(
+                "inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
+                isInk
+                  ? "border-white/35 bg-white/12 text-white hover:bg-white/18"
+                  : "border-black/35 bg-white/25 text-[var(--brand-ink)] hover:bg-white/35",
+              )}
               aria-label={shellTone === "ink" ? "Switch to paper mode" : "Switch to ink mode"}
               title={shellTone === "ink" ? "Switch to paper mode" : "Switch to ink mode"}
             >
@@ -129,7 +135,12 @@ export default function SiteHeader({
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden rounded border border-black/25 bg-white/15 p-1.5 text-[var(--brand-ink)] transition-colors hover:bg-white/25"
+            className={cn(
+              "md:hidden rounded border p-1.5 transition-colors",
+              isInk
+                ? "border-white/25 bg-white/10 text-white hover:bg-white/18"
+                : "border-black/25 bg-white/15 text-[var(--brand-ink)] hover:bg-white/25",
+            )}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}

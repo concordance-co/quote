@@ -646,6 +646,9 @@
     top: 0;
     isolation: isolate;
     background-color: var(--brand-red);
+    color: var(--site-header-text, var(--brand-ink));
+    --site-header-text: var(--brand-ink);
+    --site-header-hover-text: rgba(8, 8, 8, 0.82);
     backdrop-filter: none !important;
   }
 
@@ -808,6 +811,11 @@
 
   .brand-shell.brand-shell-ink::after {
     opacity: 0.14;
+  }
+
+  .brand-shell.brand-shell-ink .site-header {
+    --site-header-text: #f3eee8;
+    --site-header-hover-text: #ffffff;
   }
 
   .brand-shell .panel-header {

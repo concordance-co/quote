@@ -4,11 +4,11 @@ import type { TopToken } from "@/types/api";
 export type { TopToken };
 
 const BRAND = {
-  red: { r: 239, g: 51, b: 51 },
-  blue: { r: 74, g: 111, b: 224 },
-  green: { r: 46, g: 140, b: 67 },
-  yellow: { r: 245, g: 205, b: 47 },
-  inkRed: { r: 125, g: 24, b: 24 },
+  red: { r: 220, g: 83, b: 77 },
+  blue: { r: 96, g: 132, b: 224 },
+  green: { r: 62, g: 158, b: 108 },
+  yellow: { r: 214, g: 174, b: 84 },
+  inkRed: { r: 142, g: 62, b: 62 },
 };
 
 /**

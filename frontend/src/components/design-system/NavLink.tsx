@@ -10,7 +10,7 @@ const navLinkVariants = cva(
       tone: {
         default:
           "text-muted-foreground hover:text-foreground font-semibold focus-visible:ring-ring focus-visible:ring-offset-background",
-        red: "font-mono text-xs uppercase tracking-[0.08em] text-[var(--brand-ink)] hover:text-white focus-visible:ring-[var(--brand-ink)] focus-visible:ring-offset-transparent",
+        red: "font-mono text-xs uppercase tracking-[0.08em] text-[var(--site-header-text,var(--brand-ink))] hover:text-[var(--site-header-hover-text,var(--brand-ink))] focus-visible:ring-[var(--site-header-text,var(--brand-ink))] focus-visible:ring-offset-transparent",
       },
       mobile: {
         true: "w-fit",

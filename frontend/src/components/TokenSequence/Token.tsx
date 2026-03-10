@@ -44,12 +44,12 @@ function getTokenBorderColor(
 ): string {
   // Erased tokens always show red
   if (item.erased) {
-    return "rgba(185, 28, 28, 0.5)";
+    return "rgba(220, 83, 77, 0.72)";
   }
 
-  // Forced tokens always show pink
+  // Forced tokens always show brand blue
   if (item.forced) {
-    return "rgba(190, 24, 93, 0.5)";
+    return "rgba(96, 132, 224, 0.72)";
   }
 
   // For sampled tokens, use the color mode
@@ -99,10 +99,10 @@ export const Token = memo(function Token({
   // Calculate border color based on color mode
   const borderColor = getTokenBorderColor(item, colorMode);
   const backgroundColor = item.erased
-    ? "rgba(239, 51, 51, 0.32)"
+    ? "rgba(220, 83, 77, 0.18)"
     : item.forced
-      ? "rgba(74, 111, 224, 0.32)"
-      : toRgba(borderColor, 0.34);
+      ? "rgba(96, 132, 224, 0.18)"
+      : toRgba(borderColor, 0.16);
   const textColor = item.erased
     ? "var(--token-chip-strong-text, var(--token-chip-text, var(--brand-ink)))"
     : item.forced
