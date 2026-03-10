@@ -317,7 +317,7 @@
   }
 
   .ds-input {
-    @apply rounded-md border px-3 py-2;
+    @apply rounded-md border;
     border-color: hsl(var(--input));
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
@@ -1002,11 +1002,6 @@
     border-radius: 0 !important;
   }
 
-  .brand-shell.brand-shell-ink .card-with-header__header {
-    background: #161112;
-    border-bottom: 1px solid rgba(8, 8, 8, 0.58);
-  }
-
   .brand-shell.brand-shell-ink .logs-list-content {
     gap: 0;
     padding-top: 0;
@@ -1274,20 +1269,12 @@
   }
 
   .brand-shell.brand-shell-ink .playground-page .ds-input {
-    border-color: rgba(243, 238, 232, 0.34);
-    background: #1a1314;
-    color: #f7f3ee;
     box-shadow:
       inset 0 0 0 1px rgba(243, 238, 232, 0.09),
       0 0 0 0 transparent;
   }
 
-  .brand-shell.brand-shell-ink .playground-page .ds-input::placeholder {
-    color: rgba(243, 238, 232, 0.58);
-  }
-
   .brand-shell.brand-shell-ink .playground-page .ds-input:focus {
-    border-color: rgba(243, 238, 232, 0.62);
     box-shadow:
       inset 0 0 0 1px rgba(243, 238, 232, 0.2),
       0 0 0 2px rgba(239, 51, 51, 0.26);
@@ -1362,7 +1349,7 @@
   .brand-shell .card-with-header,
   .brand-shell .card-with-header__header,
   .brand-shell .card-with-header__content {
-    border-radius: 0 !important;
+    border-radius: 0;
   }
 
   .brand-shell .log-detail-page [role="tablist"],
