@@ -412,6 +412,15 @@
     --tone-close-border: color-mix(in srgb, var(--surface-border) 92%, transparent);
     --tone-close-bg: color-mix(in srgb, var(--surface-text) 6%, transparent);
     --tone-close-bg-hover: color-mix(in srgb, var(--surface-text) 12%, transparent);
+
+    /* Log-detail semantic syntax colors (paper defaults) */
+    --syntax-blue: rgb(30 64 175);
+    --syntax-emerald: rgb(6 95 70);
+    --syntax-purple: rgb(107 33 168);
+    --syntax-pink: rgb(157 23 77);
+    --syntax-cyan: rgb(14 116 144);
+    --syntax-teal: rgb(15 118 110);
+    --syntax-orange: rgb(154 52 18);
   }
 
   /* Dialog portal still needs tone variables on body */
@@ -769,6 +778,15 @@
     --surface-overlay: rgba(8, 8, 8, 0.72);
     --surface-shadow: none;
     --surface-shadow-dialog: 0 30px 70px rgba(8, 8, 8, 0.55);
+
+    /* Log-detail semantic syntax colors (ink defaults) */
+    --syntax-blue: rgb(147 197 253);
+    --syntax-emerald: rgb(110 231 183);
+    --syntax-purple: rgb(196 181 253);
+    --syntax-pink: rgb(249 168 212);
+    --syntax-cyan: rgb(103 232 249);
+    --syntax-teal: rgb(94 234 212);
+    --syntax-orange: rgb(253 186 116);
   }
 
   .brand-shell.brand-shell-ink::before {
@@ -836,18 +854,6 @@
 
   .brand-shell .border-border {
     border-color: var(--surface-border);
-  }
-
-  .brand-shell .bg-muted\/30 {
-    background-color: rgba(245, 241, 232, 0.72) !important;
-  }
-
-  .brand-shell .bg-muted {
-    background-color: rgba(245, 241, 232, 0.84) !important;
-  }
-
-  .brand-shell .bg-background {
-    background-color: var(--surface-base) !important;
   }
 
   .brand-shell input,
@@ -919,55 +925,43 @@
 
   .brand-shell .log-detail-page .text-blue-300,
   .brand-shell .log-detail-page .text-blue-400 {
-    color: rgb(30 64 175) !important;
+    color: var(--syntax-blue) !important;
   }
 
   .brand-shell .log-detail-page .text-emerald-300,
   .brand-shell .log-detail-page .text-emerald-400 {
-    color: rgb(6 95 70) !important;
+    color: var(--syntax-emerald) !important;
   }
 
   .brand-shell .log-detail-page .text-purple-300,
   .brand-shell .log-detail-page .text-purple-400 {
-    color: rgb(107 33 168) !important;
+    color: var(--syntax-purple) !important;
   }
 
   .brand-shell .log-detail-page .text-pink-300,
   .brand-shell .log-detail-page .text-pink-400 {
-    color: rgb(157 23 77) !important;
+    color: var(--syntax-pink) !important;
   }
 
   .brand-shell .log-detail-page .text-cyan-300,
   .brand-shell .log-detail-page .text-cyan-400 {
-    color: rgb(14 116 144) !important;
+    color: var(--syntax-cyan) !important;
   }
 
   .brand-shell .log-detail-page .text-teal-300 {
-    color: rgb(15 118 110) !important;
+    color: var(--syntax-teal) !important;
   }
 
   .brand-shell .log-detail-page .text-orange-300 {
-    color: rgb(154 52 18) !important;
+    color: var(--syntax-orange) !important;
   }
 
   /* Shared sidebar active state (prevents default blue primary drift) */
   .sidebar-filter-active {
-    background: rgba(8, 8, 8, 0.22);
-    color: var(--brand-ink);
-    border-left: 2px solid var(--brand-ink);
+    background: color-mix(in srgb, var(--surface-elevated) 88%, var(--surface-base));
+    color: var(--surface-text);
+    border-left: 2px solid var(--surface-border-strong);
     font-weight: 500;
-  }
-
-  .brand-shell.brand-shell-ink .bg-muted\/30 {
-    background-color: #130e0f !important;
-  }
-
-  .brand-shell.brand-shell-ink .bg-muted {
-    background-color: #161112 !important;
-  }
-
-  .brand-shell.brand-shell-ink .bg-background {
-    background-color: #130e0f !important;
   }
 
   .brand-shell.brand-shell-ink input,
@@ -981,13 +975,6 @@
   .brand-shell.brand-shell-ink input::placeholder,
   .brand-shell.brand-shell-ink textarea::placeholder {
     color: color-mix(in srgb, var(--surface-text) 52%, transparent);
-  }
-
-  .brand-shell.brand-shell-ink .sidebar-filter-active {
-    background: #1e1718;
-    color: #f3eee8;
-    border-left: 2px solid #ef3333;
-    font-weight: 500;
   }
 
   /* Flat surfaces for dense data views in ink mode */
