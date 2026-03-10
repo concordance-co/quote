@@ -29,7 +29,7 @@ export function FormField({
       </span>
       {children}
       {hasError ? (
-        <span className="font-mono text-[11px] text-red-300">{errorText}</span>
+        <span className="font-mono text-[11px] text-destructive">{errorText}</span>
       ) : helperText ? (
         <span className="font-mono text-[11px] opacity-70">{helperText}</span>
       ) : null}
@@ -39,3 +39,8 @@ export function FormField({
 
 export const formFieldInputClassName =
   "ds-input w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary focus-visible:ring-2 focus-visible:ring-[var(--brand-blue)] disabled:opacity-50";
+
+export const formFieldTextareaClassName = cn(
+  formFieldInputClassName,
+  "min-h-[86px] resize-y",
+);

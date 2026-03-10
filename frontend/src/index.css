@@ -416,6 +416,11 @@
 
   /* Dialog portal still needs tone variables on body */
   body[data-shell-tone="paper"] {
+    --surface-base: rgba(252, 248, 242, 0.94);
+    --surface-primary: rgba(247, 243, 236, 0.9);
+    --surface-elevated: rgba(245, 241, 232, 0.94);
+    --surface-border: rgba(8, 8, 8, 0.24);
+    --surface-text: #080808;
     --tone-overlay: rgba(8, 8, 8, 0.58);
     --tone-surface-border: rgba(8, 8, 8, 0.24);
     --tone-surface-bg: rgba(252, 248, 242, 0.96);
@@ -427,6 +432,11 @@
   }
 
   body[data-shell-tone="ink"] {
+    --surface-base: #130e0f;
+    --surface-primary: #161112;
+    --surface-elevated: #1b1415;
+    --surface-border: rgba(239, 233, 225, 0.2);
+    --surface-text: #f3eee8;
     --tone-overlay: rgba(8, 8, 8, 0.72);
     --tone-surface-border: rgba(239, 233, 225, 0.2);
     --tone-surface-bg: #161112;
@@ -789,7 +799,7 @@
   }
 
   .brand-shell.brand-shell-ink .card-with-header__header {
-    background: #141923;
+    background: var(--surface-elevated);
   }
 
   .brand-shell .panel-title {
@@ -946,55 +956,6 @@
     color: var(--brand-ink);
     border-left: 2px solid var(--brand-ink);
     font-weight: 500;
-  }
-
-  /* Re-assert ink overrides at end of layer to win cascade */
-  .brand-shell.brand-shell-ink .panel {
-    border-color: var(--surface-border);
-    background: var(--surface-primary);
-    color: var(--surface-text);
-    border-radius: 0;
-    box-shadow: none;
-    backdrop-filter: none;
-  }
-
-  .brand-shell.brand-shell-ink .panel-header {
-    border-bottom-color: var(--surface-border);
-    background: var(--surface-elevated);
-    color: var(--surface-text);
-  }
-
-  .brand-shell.brand-shell-ink .panel-title {
-    color: var(--surface-text);
-  }
-
-  .brand-shell.brand-shell-ink .data-table th {
-    border-bottom-color: var(--surface-border);
-    background: var(--surface-elevated);
-    color: var(--surface-text-muted);
-    font-weight: 600;
-  }
-
-  .brand-shell.brand-shell-ink .data-table td {
-    border-bottom-color: color-mix(in srgb, var(--surface-border) 84%, transparent);
-    color: var(--surface-text);
-    background: color-mix(in srgb, var(--surface-primary) 92%, var(--surface-base));
-  }
-
-  .brand-shell.brand-shell-ink .data-table tbody tr:nth-child(even) td {
-    background: color-mix(in srgb, var(--surface-primary) 84%, var(--surface-base));
-  }
-
-  .brand-shell.brand-shell-ink .data-table tr:hover td {
-    background: color-mix(in srgb, var(--surface-primary) 94%, var(--surface-elevated));
-  }
-
-  .brand-shell.brand-shell-ink .text-muted-foreground {
-    color: var(--surface-text-muted);
-  }
-
-  .brand-shell.brand-shell-ink .border-border {
-    border-color: var(--surface-border);
   }
 
   .brand-shell.brand-shell-ink .bg-muted\/30 {
@@ -1227,6 +1188,13 @@
     box-shadow:
       inset 0 0 0 1px color-mix(in srgb, var(--surface-text) 14%, transparent),
       0 0 0 2px rgba(74, 111, 224, 0.24);
+  }
+
+  /* Explicit ink contract hook: values are inherited through --surface-* tokens */
+  .brand-shell.brand-shell-ink .ds-input {
+    border-color: var(--surface-input-border);
+    background: var(--surface-input-bg);
+    color: var(--surface-text);
   }
 
   .brand-shell .playground-side-rail {

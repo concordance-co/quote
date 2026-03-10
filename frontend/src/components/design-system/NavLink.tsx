@@ -1,4 +1,4 @@
-import { Link, type LinkProps } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
@@ -34,7 +34,6 @@ export type DsNavLinkProps = VariantProps<typeof navLinkVariants> & {
   label: string;
   external?: boolean;
   className?: string;
-  linkProps?: Omit<LinkProps, "to">;
 };
 
 export function DsNavLink({
@@ -45,7 +44,6 @@ export function DsNavLink({
   mobile,
   active,
   className,
-  linkProps,
 }: DsNavLinkProps) {
   const classes = cn(navLinkVariants({ tone, mobile, active }), className);
 
@@ -58,7 +56,7 @@ export function DsNavLink({
   }
 
   return (
-    <Link to={href} className={classes} {...linkProps}>
+    <Link to={href} className={classes}>
       {label}
     </Link>
   );
