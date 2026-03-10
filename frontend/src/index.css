@@ -1198,9 +1198,9 @@
   }
 
   .brand-shell .playground-side-rail {
-    border-radius: 0 !important;
-    border: 1px solid rgba(8, 8, 8, 0.24) !important;
-    background: rgba(247, 243, 236, 0.84) !important;
+    border-radius: 0;
+    border: 1px solid rgba(8, 8, 8, 0.24);
+    background: rgba(247, 243, 236, 0.84);
   }
 
   .brand-shell .playground-side-header,
@@ -1210,33 +1210,33 @@
 
   .brand-shell .playground-api-code {
     border: 1px solid rgba(8, 8, 8, 0.22);
-    background: rgba(255, 255, 255, 0.72) !important;
-    border-radius: 0 !important;
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 0;
   }
 
   .brand-shell .playground-history-list {
-    background: rgba(247, 243, 236, 0.88) !important;
+    background: rgba(247, 243, 236, 0.88);
   }
 
   .brand-shell .playground-history-item {
-    border-bottom-color: rgba(8, 8, 8, 0.18) !important;
+    border-bottom-color: rgba(8, 8, 8, 0.18);
   }
 
   .brand-shell .playground-history-item:hover {
-    background: rgba(255, 255, 255, 0.62) !important;
+    background: rgba(255, 255, 255, 0.62);
   }
 
   .brand-shell .playground-run-button {
-    background: var(--brand-blue) !important;
-    border-color: color-mix(in srgb, var(--brand-blue) 62%, black) !important;
-    color: #f7f9ff !important;
+    background: var(--brand-blue);
+    border-color: color-mix(in srgb, var(--brand-blue) 62%, black);
+    color: #f7f9ff;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.18),
       0 1px 0 rgba(8, 8, 8, 0.2);
   }
 
   .brand-shell .playground-run-button:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--brand-blue) 86%, black) !important;
+    background: color-mix(in srgb, var(--brand-blue) 86%, black);
   }
 
   .brand-shell .token-sequence .text-muted-foreground {
@@ -1288,9 +1288,9 @@
   .brand-shell.brand-shell-ink .playground-page input,
   .brand-shell.brand-shell-ink .playground-page select,
   .brand-shell.brand-shell-ink .playground-page textarea {
-    border-color: rgba(243, 238, 232, 0.34) !important;
-    background: #1a1314 !important;
-    color: #f7f3ee !important;
+    border-color: rgba(243, 238, 232, 0.34);
+    background: #1a1314;
+    color: #f7f3ee;
     box-shadow:
       inset 0 0 0 1px rgba(243, 238, 232, 0.09),
       0 0 0 0 transparent;
@@ -1298,60 +1298,60 @@
 
   .brand-shell.brand-shell-ink .playground-page input::placeholder,
   .brand-shell.brand-shell-ink .playground-page textarea::placeholder {
-    color: rgba(243, 238, 232, 0.58) !important;
+    color: rgba(243, 238, 232, 0.58);
   }
 
   .brand-shell.brand-shell-ink .playground-page input:focus,
   .brand-shell.brand-shell-ink .playground-page select:focus,
   .brand-shell.brand-shell-ink .playground-page textarea:focus {
-    border-color: rgba(243, 238, 232, 0.62) !important;
+    border-color: rgba(243, 238, 232, 0.62);
     box-shadow:
       inset 0 0 0 1px rgba(243, 238, 232, 0.2),
       0 0 0 2px rgba(239, 51, 51, 0.26);
   }
 
   .brand-shell.brand-shell-ink .playground-side-rail {
-    border-radius: 0 !important;
-    border-color: rgba(239, 233, 225, 0.16) !important;
-    background: #161112 !important;
+    border-radius: 0;
+    border-color: rgba(239, 233, 225, 0.16);
+    background: #161112;
   }
 
   .brand-shell.brand-shell-ink .playground-side-header,
   .brand-shell.brand-shell-ink .playground-history-toggle {
-    border-bottom-color: rgba(239, 233, 225, 0.14) !important;
+    border-bottom-color: rgba(239, 233, 225, 0.14);
     background: #1d1516;
   }
 
   .brand-shell.brand-shell-ink .playground-api-code {
-    border-color: rgba(239, 233, 225, 0.2) !important;
-    background: #130e0f !important;
+    border-color: rgba(239, 233, 225, 0.2);
+    background: #130e0f;
     color: rgba(243, 238, 232, 0.84);
-    border-radius: 0 !important;
+    border-radius: 0;
   }
 
   .brand-shell.brand-shell-ink .playground-history-list {
-    background: #161112 !important;
+    background: #161112;
   }
 
   .brand-shell.brand-shell-ink .playground-history-item {
-    border-bottom-color: rgba(239, 233, 225, 0.1) !important;
+    border-bottom-color: rgba(239, 233, 225, 0.1);
   }
 
   .brand-shell.brand-shell-ink .playground-history-item:hover {
-    background: #23191b !important;
+    background: #23191b;
   }
 
   .brand-shell.brand-shell-ink .playground-run-button {
-    background: var(--brand-blue) !important;
-    border-color: color-mix(in srgb, var(--brand-blue) 76%, white) !important;
-    color: #f2f6ff !important;
+    background: var(--brand-blue);
+    border-color: color-mix(in srgb, var(--brand-blue) 76%, white);
+    color: #f2f6ff;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.22),
       0 1px 0 rgba(8, 8, 8, 0.28);
   }
 
   .brand-shell.brand-shell-ink .playground-run-button:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--brand-blue) 88%, black) !important;
+    background: color-mix(in srgb, var(--brand-blue) 88%, black);
   }
 
   .brand-shell.brand-shell-ink .token-sequence .text-muted-foreground {
@@ -1485,25 +1485,25 @@
   .brand-shell .activation-explorer-section {
     border: 1px solid rgba(8, 8, 8, 0.24);
     background: rgba(247, 243, 236, 0.84);
-    padding: 0.5rem !important;
+    padding: 0.5rem;
     gap: 0.5rem;
   }
 
   .brand-shell .activation-panel {
-    border-radius: 0 !important;
-    border: 1px solid rgba(8, 8, 8, 0.24) !important;
-    background: rgba(247, 243, 236, 0.9) !important;
-    box-shadow: none !important;
+    border-radius: 0;
+    border: 1px solid rgba(8, 8, 8, 0.24);
+    background: rgba(247, 243, 236, 0.9);
+    box-shadow: none;
   }
 
   .brand-shell .activation-panel::before {
-    display: none !important;
+    display: none;
   }
 
   .brand-shell .activation-panel-header {
     border-bottom: 1px solid rgba(8, 8, 8, 0.2);
     background: rgba(252, 248, 242, 0.72);
-    padding: 0.6rem 0.75rem !important;
+    padding: 0.6rem 0.75rem;
   }
 
   .brand-shell .activation-panel-title {
@@ -1519,8 +1519,8 @@
   }
 
   .brand-shell .activation-panel-content {
-    padding: 0.75rem !important;
-    padding-top: 0.65rem !important;
+    padding: 0.75rem;
+    padding-top: 0.65rem;
     color: rgba(8, 8, 8, 0.88);
   }
 
@@ -1532,40 +1532,40 @@
   }
 
   .brand-shell .activation-input {
-    font-family: var(--font-sans) !important;
-    border-radius: 0 !important;
-    border: 1px solid rgba(8, 8, 8, 0.38) !important;
-    background: rgba(255, 255, 255, 0.76) !important;
+    font-family: var(--font-sans);
+    border-radius: 0;
+    border: 1px solid rgba(8, 8, 8, 0.38);
+    background: rgba(255, 255, 255, 0.76);
     color: rgba(8, 8, 8, 0.95);
-    box-shadow: none !important;
+    box-shadow: none;
   }
 
   .brand-shell .activation-input:focus {
     outline: none;
-    border-color: rgba(8, 8, 8, 0.74) !important;
+    border-color: rgba(8, 8, 8, 0.74);
     box-shadow:
       inset 0 0 0 1px rgba(8, 8, 8, 0.14),
-      0 0 0 2px rgba(74, 111, 224, 0.24) !important;
+      0 0 0 2px rgba(74, 111, 224, 0.24);
   }
 
   .brand-shell .activation-code-block,
   .brand-shell .activation-table-wrap,
   .brand-shell .activation-run-item {
-    border-radius: 0 !important;
+    border-radius: 0;
   }
 
   .brand-shell .activation-run-item {
-    border-color: rgba(8, 8, 8, 0.28) !important;
+    border-color: rgba(8, 8, 8, 0.28);
     background: rgba(255, 255, 255, 0.34);
   }
 
   .brand-shell .activation-run-item:hover {
-    background: rgba(255, 255, 255, 0.64) !important;
+    background: rgba(255, 255, 255, 0.64);
   }
 
   .brand-shell .activation-run-item.border-primary {
-    border-color: color-mix(in srgb, var(--brand-blue) 56%, black) !important;
-    background: rgba(74, 111, 224, 0.1) !important;
+    border-color: color-mix(in srgb, var(--brand-blue) 56%, black);
+    background: rgba(74, 111, 224, 0.1);
   }
 
   .brand-shell .activation-table-wrap thead th {
@@ -1578,7 +1578,7 @@
   }
 
   .brand-shell .activation-table-wrap tbody td {
-    border-top-color: rgba(8, 8, 8, 0.16) !important;
+    border-top-color: rgba(8, 8, 8, 0.16);
   }
 
   .brand-shell .activation-table-wrap tbody tr:nth-child(even) td {
@@ -1586,13 +1586,13 @@
   }
 
   .brand-shell .activation-primary-button {
-    background: var(--brand-blue) !important;
-    border-color: color-mix(in srgb, var(--brand-blue) 62%, black) !important;
-    color: #f7f9ff !important;
+    background: var(--brand-blue);
+    border-color: color-mix(in srgb, var(--brand-blue) 62%, black);
+    color: #f7f9ff;
   }
 
   .brand-shell .activation-primary-button:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--brand-blue) 86%, black) !important;
+    background: color-mix(in srgb, var(--brand-blue) 86%, black);
   }
 
   .brand-shell.brand-shell-ink .app-main-shell--activations {
@@ -1609,8 +1609,8 @@
   }
 
   .brand-shell.brand-shell-ink .activation-panel {
-    border-color: rgba(239, 233, 225, 0.16) !important;
-    background: #161112 !important;
+    border-color: rgba(239, 233, 225, 0.16);
+    background: #161112;
   }
 
   .brand-shell.brand-shell-ink .activation-panel-header {
@@ -1631,9 +1631,9 @@
   }
 
   .brand-shell.brand-shell-ink .activation-input {
-    border-color: rgba(243, 238, 232, 0.34) !important;
-    background: #1a1314 !important;
-    color: #f7f3ee !important;
+    border-color: rgba(243, 238, 232, 0.34);
+    background: #1a1314;
+    color: #f7f3ee;
   }
 
   .brand-shell.brand-shell-ink .activation-input::placeholder {
@@ -1641,32 +1641,32 @@
   }
 
   .brand-shell.brand-shell-ink .activation-input:focus {
-    border-color: rgba(243, 238, 232, 0.64) !important;
+    border-color: rgba(243, 238, 232, 0.64);
     box-shadow:
       inset 0 0 0 1px rgba(243, 238, 232, 0.24),
-      0 0 0 2px rgba(74, 111, 224, 0.28) !important;
+      0 0 0 2px rgba(74, 111, 224, 0.28);
   }
 
   .brand-shell.brand-shell-ink .activation-code-block,
   .brand-shell.brand-shell-ink .activation-table-wrap {
-    border-color: rgba(239, 233, 225, 0.22) !important;
-    background: #130e0f !important;
+    border-color: rgba(239, 233, 225, 0.22);
+    background: #130e0f;
     color: #f3eee8;
   }
 
   .brand-shell.brand-shell-ink .activation-run-item {
-    border-color: rgba(239, 233, 225, 0.2) !important;
+    border-color: rgba(239, 233, 225, 0.2);
     background: #1a1314;
     color: #f3eee8;
   }
 
   .brand-shell.brand-shell-ink .activation-run-item:hover {
-    background: #251b1d !important;
+    background: #251b1d;
   }
 
   .brand-shell.brand-shell-ink .activation-run-item.border-primary {
-    border-color: color-mix(in srgb, var(--brand-blue) 70%, white) !important;
-    background: color-mix(in srgb, var(--brand-blue) 20%, #1a1314) !important;
+    border-color: color-mix(in srgb, var(--brand-blue) 70%, white);
+    background: color-mix(in srgb, var(--brand-blue) 20%, #1a1314);
   }
 
   .brand-shell.brand-shell-ink .activation-table-wrap thead th {
@@ -1676,7 +1676,7 @@
   }
 
   .brand-shell.brand-shell-ink .activation-table-wrap tbody td {
-    border-top-color: rgba(239, 233, 225, 0.12) !important;
+    border-top-color: rgba(239, 233, 225, 0.12);
   }
 
   .brand-shell.brand-shell-ink .activation-table-wrap tbody tr:nth-child(even) td {
@@ -1684,13 +1684,13 @@
   }
 
   .brand-shell.brand-shell-ink .activation-primary-button {
-    background: var(--brand-blue) !important;
-    border-color: color-mix(in srgb, var(--brand-blue) 76%, white) !important;
-    color: #f2f6ff !important;
+    background: var(--brand-blue);
+    border-color: color-mix(in srgb, var(--brand-blue) 76%, white);
+    color: #f2f6ff;
   }
 
   .brand-shell.brand-shell-ink .activation-primary-button:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--brand-blue) 88%, black) !important;
+    background: color-mix(in srgb, var(--brand-blue) 88%, black);
   }
 }
 

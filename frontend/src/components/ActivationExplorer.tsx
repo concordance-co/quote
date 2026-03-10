@@ -3,7 +3,7 @@ import { AlertTriangle, Loader2, Play, RefreshCw, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardWithHeader } from "@/components/design-system/CardWithHeader";
 import {
   FormField,
   formFieldInputClassName,
@@ -200,14 +200,17 @@ export default function ActivationExplorer() {
   return (
     <div className="activation-explorer-page container max-w-7xl space-y-4">
       <div className="activation-explorer-section grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <Card className="activation-panel">
-          <CardHeader className="activation-panel-header">
-            <CardTitle className="activation-panel-title">Activation Explorer (v0)</CardTitle>
-            <CardDescription className="activation-panel-description">
+        <CardWithHeader
+          className="activation-panel"
+          headerClassName="activation-panel-header"
+          contentClassName="activation-panel-content space-y-3"
+          title={<span className="activation-panel-title">Activation Explorer (v0)</span>}
+          subtitle={
+            <span className="activation-panel-description">
               Run inference with SAE feature extraction and inspect activation data.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="activation-panel-content space-y-3">
+            </span>
+          }
+        >
             <FormField label="Prompt">
               <textarea
                 className={`${formFieldInputClassName} activation-input min-h-28`}
@@ -299,15 +302,19 @@ export default function ActivationExplorer() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CardWithHeader>
 
-        <Card className="activation-panel">
-          <CardHeader className="activation-panel-header">
-            <CardTitle className="activation-panel-title">Recent Runs</CardTitle>
-            <CardDescription className="activation-panel-description">Indexed metadata from backend run index.</CardDescription>
-          </CardHeader>
-          <CardContent className="activation-panel-content space-y-2">
+        <CardWithHeader
+          className="activation-panel"
+          headerClassName="activation-panel-header"
+          contentClassName="activation-panel-content space-y-2"
+          title={<span className="activation-panel-title">Recent Runs</span>}
+          subtitle={
+            <span className="activation-panel-description">
+              Indexed metadata from backend run index.
+            </span>
+          }
+        >
             {runs.length === 0 && <p className="text-sm text-muted-foreground">No runs indexed yet.</p>}
             {runs.map((run) => (
               <button
@@ -325,16 +332,16 @@ export default function ActivationExplorer() {
                 </div>
               </button>
             ))}
-          </CardContent>
-        </Card>
+        </CardWithHeader>
       </div>
 
       <div className="activation-explorer-section grid gap-4 lg:grid-cols-2">
-        <Card className="activation-panel">
-          <CardHeader className="activation-panel-header">
-            <CardTitle className="activation-panel-title">Output + Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="activation-panel-content space-y-3">
+        <CardWithHeader
+          className="activation-panel"
+          headerClassName="activation-panel-header"
+          contentClassName="activation-panel-content space-y-3"
+          title={<span className="activation-panel-title">Output + Summary</span>}
+        >
             {!selectedSummary && !lastRun && (
               <p className="text-sm text-muted-foreground">Run the model or select a recent request to inspect.</p>
             )}
@@ -357,29 +364,37 @@ export default function ActivationExplorer() {
                 {lastRun.output.text || "(empty output)"}
               </pre>
             )}
-          </CardContent>
-        </Card>
+        </CardWithHeader>
 
-        <Card className="activation-panel">
-          <CardHeader className="activation-panel-header">
-            <CardTitle className="activation-panel-title">Top Features</CardTitle>
-            <CardDescription className="activation-panel-description">Aggregated by request (max activation + hit count).</CardDescription>
-          </CardHeader>
-          <CardContent className="activation-panel-content">
+        <CardWithHeader
+          className="activation-panel"
+          headerClassName="activation-panel-header"
+          contentClassName="activation-panel-content"
+          title={<span className="activation-panel-title">Top Features</span>}
+          subtitle={
+            <span className="activation-panel-description">
+              Aggregated by request (max activation + hit count).
+            </span>
+          }
+        >
             <pre className="activation-code-block max-h-64 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
               {topFeaturesPreview}
             </pre>
-          </CardContent>
-        </Card>
+        </CardWithHeader>
       </div>
 
       <div className={`activation-explorer-section grid gap-4 ${FEATURE_DELTAS_ENABLED ? "lg:grid-cols-2" : ""}`}>
-        <Card className="activation-panel">
-          <CardHeader className="activation-panel-header">
-            <CardTitle className="activation-panel-title">Activation Rows</CardTitle>
-            <CardDescription className="activation-panel-description">Preview rows from SAE timeline.</CardDescription>
-          </CardHeader>
-          <CardContent className="activation-panel-content">
+        <CardWithHeader
+          className="activation-panel"
+          headerClassName="activation-panel-header"
+          contentClassName="activation-panel-content"
+          title={<span className="activation-panel-title">Activation Rows</span>}
+          subtitle={
+            <span className="activation-panel-description">
+              Preview rows from SAE timeline.
+            </span>
+          }
+        >
             {!selectedRows && <p className="text-sm text-muted-foreground">No rows loaded.</p>}
             {selectedRows && (
               <div className="activation-table-wrap max-h-80 overflow-auto rounded-md border border-border">
@@ -409,16 +424,20 @@ export default function ActivationExplorer() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CardWithHeader>
 
         {FEATURE_DELTAS_ENABLED && (
-          <Card className="activation-panel">
-            <CardHeader className="activation-panel-header">
-              <CardTitle className="activation-panel-title">Feature Delta Timeline</CardTitle>
-              <CardDescription className="activation-panel-description">Query per-feature activation deltas over generation.</CardDescription>
-            </CardHeader>
-            <CardContent className="activation-panel-content space-y-3">
+          <CardWithHeader
+            className="activation-panel"
+            headerClassName="activation-panel-header"
+            contentClassName="activation-panel-content space-y-3"
+            title={<span className="activation-panel-title">Feature Delta Timeline</span>}
+            subtitle={
+              <span className="activation-panel-description">
+                Query per-feature activation deltas over generation.
+              </span>
+            }
+          >
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -461,8 +480,7 @@ export default function ActivationExplorer() {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </CardWithHeader>
         )}
       </div>
     </div>
