@@ -50,6 +50,10 @@ import {
   DsPanelHeader,
   DsPanelTitle,
 } from "@/components/design-system/Panel";
+import {
+  formFieldInputClassName,
+  formFieldTextareaClassName,
+} from "@/components/design-system/FormField";
 
 // Static configuration - no need to fetch from backend
 const MODELS = [
@@ -1144,6 +1148,18 @@ export default function Playground() {
     "running_inference",
     "fetching_results",
   ].includes(state.step);
+  const compactInputClassName = cn(
+    formFieldInputClassName,
+    "px-2 py-1.5 text-xs font-mono",
+  );
+  const compactTextareaClassName = cn(
+    formFieldTextareaClassName,
+    "min-h-0 resize-none px-2 py-1.5 text-xs font-mono",
+  );
+  const compactTextareaAutoClassName = cn(
+    compactTextareaClassName,
+    "overflow-y-auto",
+  );
 
   return (
     <div className="playground-page h-full flex flex-col bg-background px-2 pt-4 pb-4 sm:px-4">
@@ -1352,7 +1368,7 @@ export default function Playground() {
                       value={selectedModel}
                       onChange={(e) => setSelectedModel(e.target.value)}
                       disabled={isRunning}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     >
                       {MODELS.map((model) => (
                         <option key={model.id} value={model.id}>
@@ -1387,7 +1403,7 @@ export default function Playground() {
                       disabled={isRunning}
                       min={1}
                       max={4096}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                   <div>
@@ -1409,7 +1425,7 @@ export default function Playground() {
                       min={0}
                       max={2}
                       step={0.1}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                 </div>
@@ -1431,7 +1447,7 @@ export default function Playground() {
                     onChange={(e) => setSystemPrompt(e.target.value)}
                     disabled={isRunning}
                     rows={2}
-                    className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                    className={compactTextareaClassName}
                     placeholder="You are a helpful assistant..."
                   />
                 </div>
@@ -1444,7 +1460,7 @@ export default function Playground() {
                     onChange={(e) => setUserPrompt(e.target.value)}
                     disabled={isRunning}
                     rows={3}
-                    className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                    className={compactTextareaClassName}
                     placeholder="What would you like to ask?"
                   />
                 </div>
@@ -1502,7 +1518,7 @@ export default function Playground() {
                       disabled={isRunning || !enableMod}
                       rows={2}
                       className={cn(
-                        "w-full px-2 py-1.5 text-xs font-mono bg-background border rounded focus:outline-none focus:ring-1 focus:ring-primary resize-none overflow-y-auto",
+                        compactTextareaAutoClassName,
                         enableMod ? "border-[color:color-mix(in_srgb,var(--brand-blue)_48%,transparent)]" : "border-border",
                       )}
                       style={{ minHeight: "3.5rem", maxHeight: "200px" }}
@@ -1522,7 +1538,7 @@ export default function Playground() {
                       setInjectionPosition(e.target.value as InjectionPosition)
                     }
                     disabled={isRunning || !enableMod}
-                    className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                    className={compactInputClassName}
                   >
                     {POSITIONS.filter((pos) => {
                       const isQwenModel = selectedModel
@@ -1561,7 +1577,7 @@ export default function Playground() {
                       }
                       disabled={isRunning || !enableMod}
                       min={1}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                 )}
@@ -1584,7 +1600,7 @@ export default function Playground() {
                       }
                       disabled={isRunning || !enableMod}
                       min={1}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                 )}
@@ -1609,7 +1625,7 @@ export default function Playground() {
                             setDetectPhrases(newPhrases);
                           }}
                           disabled={isRunning || !enableMod}
-                          className="flex-1 px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                          className={cn(compactInputClassName, "flex-1")}
                           placeholder={i === 0 ? "e.g., Cats" : ""}
                         />
                         <span className="text-muted-foreground text-xs">→</span>
@@ -1622,7 +1638,7 @@ export default function Playground() {
                             setReplacementPhrases(newPhrases);
                           }}
                           disabled={isRunning || !enableMod}
-                          className="flex-1 px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                          className={cn(compactInputClassName, "flex-1")}
                           placeholder={i === 0 ? "e.g., Lizards" : ""}
                         />
                       </div>

@@ -38,7 +38,7 @@ export function FormField({
 }
 
 export const formFieldInputClassName =
-  "ds-input w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary focus-visible:ring-2 focus-visible:ring-[var(--brand-blue)] disabled:opacity-50";
+  "ds-input w-full rounded-md px-3 py-2 text-sm outline-none transition-[border-color,box-shadow] disabled:opacity-50";
 
 export const formFieldTextareaClassName = cn(
   formFieldInputClassName,
