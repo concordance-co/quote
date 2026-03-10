@@ -870,11 +870,11 @@
   }
 
   /* Detail page legibility tuning */
-  .brand-shell .log-detail-page {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page {
     color: var(--brand-ink);
   }
 
-  .brand-shell .log-detail-page .panel {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .panel {
     border-color: rgba(8, 8, 8, 0.34);
     background: linear-gradient(
       145deg,
@@ -885,41 +885,41 @@
     backdrop-filter: blur(4px) saturate(112%);
   }
 
-  .brand-shell .log-detail-page .text-muted-foreground {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .text-muted-foreground {
     color: rgba(8, 8, 8, 0.72);
   }
 
-  .brand-shell .log-detail-page .border-border\/50 {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .border-border\/50 {
     border-color: rgba(8, 8, 8, 0.24) !important;
   }
 
-  .brand-shell .log-detail-page [role="tablist"] {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page [role="tablist"] {
     border: 1px solid rgba(8, 8, 8, 0.26);
     background: rgba(252, 248, 242, 0.86) !important;
   }
 
-  .brand-shell .log-detail-page [role="tab"] {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page [role="tab"] {
     color: rgba(8, 8, 8, 0.72);
   }
 
-  .brand-shell .log-detail-page [role="tab"][data-state="active"] {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page [role="tab"][data-state="active"] {
     color: var(--brand-ink);
     background: rgba(255, 255, 255, 0.92);
     box-shadow: none;
   }
 
-  .brand-shell .log-detail-page .bg-muted\/30 {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .bg-muted\/30 {
     background-color: rgba(247, 243, 236, 0.84) !important;
   }
 
-  .brand-shell .log-detail-page .bg-muted\/50 {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .bg-muted\/50 {
     background-color: rgba(247, 243, 236, 0.88) !important;
   }
 
-  .brand-shell .log-detail-page .bg-black\/10,
-  .brand-shell .log-detail-page .bg-black\/20,
-  .brand-shell .log-detail-page .bg-black\/30,
-  .brand-shell .log-detail-page .bg-black\/40 {
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .bg-black\/10,
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .bg-black\/20,
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .bg-black\/30,
+  .brand-shell:not(.brand-shell-ink) .log-detail-page .bg-black\/40 {
     background-color: rgba(255, 255, 255, 0.68) !important;
   }
 
@@ -1157,6 +1157,15 @@
       0 0 0 2px rgba(74, 111, 224, 0.28);
   }
 
+  .brand-shell .playground-page input:disabled,
+  .brand-shell .playground-page select:disabled,
+  .brand-shell .playground-page textarea:disabled {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--surface-input-bg) 82%, var(--surface-base));
+    color: color-mix(in srgb, var(--surface-text) 72%, transparent);
+    -webkit-text-fill-color: color-mix(in srgb, var(--surface-text) 72%, transparent);
+  }
+
   /* Semantic form control contract for DS inputs */
   .brand-shell .ds-input {
     border-color: var(--surface-input-border);
@@ -1295,6 +1304,16 @@
     box-shadow:
       inset 0 0 0 1px rgba(243, 238, 232, 0.2),
       0 0 0 2px rgba(239, 51, 51, 0.26);
+  }
+
+  .brand-shell.brand-shell-ink .playground-page input:disabled,
+  .brand-shell.brand-shell-ink .playground-page select:disabled,
+  .brand-shell.brand-shell-ink .playground-page textarea:disabled {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--surface-input-bg) 86%, var(--surface-base));
+    color: color-mix(in srgb, var(--surface-text) 68%, transparent);
+    -webkit-text-fill-color: color-mix(in srgb, var(--surface-text) 68%, transparent);
+    border-color: color-mix(in srgb, var(--surface-input-border) 84%, transparent);
   }
 
   .brand-shell.brand-shell-ink .playground-side-rail {
