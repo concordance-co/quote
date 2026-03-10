@@ -21,6 +21,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DsPanel,
+  DsPanelContent,
+  DsPanelHeader,
+  DsPanelTitle,
+} from "@/components/design-system/Panel";
 import { cn } from "@/lib/utils";
 import { useUsername } from "@/hooks/useUsername";
 import { createDiscussion } from "@/lib/api";
@@ -303,7 +309,7 @@ export function MetricsView({
   return (
     <div className="space-y-2">
       {/* Summary Stats Row */}
-      <div className="panel">
+      <DsPanel>
         <div className="px-3 py-2 flex items-center gap-6 text-xs flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="text-muted-foreground">Avg Prob:</span>
@@ -368,16 +374,16 @@ export function MetricsView({
             </span>
           </div>
         </div>
-      </div>
+      </DsPanel>
 
       {/* Charts Grid */}
       <div className="grid gap-2 lg:grid-cols-2">
         {/* Probability Chart */}
-        <div className="panel">
-          <div className="panel-header flex items-center justify-between">
-            <span className="panel-title">
+        <DsPanel>
+          <DsPanelHeader className="flex items-center justify-between">
+            <DsPanelTitle>
               Added Token Probability (Sampled Only)
-            </span>
+            </DsPanelTitle>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -401,7 +407,7 @@ export function MetricsView({
                 <p className="text-2xs">Add comment</p>
               </TooltipContent>
             </Tooltip>
-          </div>
+          </DsPanelHeader>
           {commentingOnChart === "probability" && (
             <InlineChartCommentForm
               requestId={requestId}
@@ -414,7 +420,7 @@ export function MetricsView({
               }}
             />
           )}
-          <div className="panel-content">
+          <DsPanelContent>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={sampledOnlyData}>
@@ -468,15 +474,15 @@ export function MetricsView({
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
+          </DsPanelContent>
+        </DsPanel>
 
         {/* Entropy Chart */}
-        <div className="panel">
-          <div className="panel-header flex items-center justify-between">
-            <span className="panel-title">
+        <DsPanel>
+          <DsPanelHeader className="flex items-center justify-between">
+            <DsPanelTitle>
               Entropy Over Steps (Sampled Only)
-            </span>
+            </DsPanelTitle>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -498,7 +504,7 @@ export function MetricsView({
                 <p className="text-2xs">Add comment</p>
               </TooltipContent>
             </Tooltip>
-          </div>
+          </DsPanelHeader>
           {commentingOnChart === "entropy" && (
             <InlineChartCommentForm
               requestId={requestId}
@@ -511,7 +517,7 @@ export function MetricsView({
               }}
             />
           )}
-          <div className="panel-content">
+          <DsPanelContent>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={sampledOnlyData}>
@@ -552,16 +558,16 @@ export function MetricsView({
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
+          </DsPanelContent>
+        </DsPanel>
 
         {/* Branchiness Chart */}
-        <div className="panel">
-          <div className="panel-header flex items-center justify-between">
+        <DsPanel>
+          <DsPanelHeader className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="panel-title">
+              <DsPanelTitle>
                 Branchiness Score (Sampled Only)
-              </span>
+              </DsPanelTitle>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="text-2xs text-muted-foreground cursor-help">
@@ -601,7 +607,7 @@ export function MetricsView({
                 <p className="text-2xs">Add comment</p>
               </TooltipContent>
             </Tooltip>
-          </div>
+          </DsPanelHeader>
           {commentingOnChart === "branchiness" && (
             <InlineChartCommentForm
               requestId={requestId}
@@ -614,7 +620,7 @@ export function MetricsView({
               }}
             />
           )}
-          <div className="panel-content">
+          <DsPanelContent>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -751,15 +757,15 @@ export function MetricsView({
                 <span className="text-muted-foreground">Critical</span>
               </div>
             </div>
-          </div>
-        </div>
+          </DsPanelContent>
+        </DsPanel>
 
         {/* Flatness Chart */}
-        <div className="panel">
-          <div className="panel-header flex items-center justify-between">
-            <span className="panel-title">
+        <DsPanel>
+          <DsPanelHeader className="flex items-center justify-between">
+            <DsPanelTitle>
               Distribution Flatness (Sampled Only)
-            </span>
+            </DsPanelTitle>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -781,7 +787,7 @@ export function MetricsView({
                 <p className="text-2xs">Add comment</p>
               </TooltipContent>
             </Tooltip>
-          </div>
+          </DsPanelHeader>
           {commentingOnChart === "flatness" && (
             <InlineChartCommentForm
               requestId={requestId}
@@ -794,7 +800,7 @@ export function MetricsView({
               }}
             />
           )}
-          <div className="panel-content">
+          <DsPanelContent>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -857,13 +863,13 @@ export function MetricsView({
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
+          </DsPanelContent>
+        </DsPanel>
 
         {/* Forced vs Sampled */}
-        <div className="panel">
-          <div className="panel-header flex items-center justify-between">
-            <span className="panel-title">Forced vs Sampled</span>
+        <DsPanel>
+          <DsPanelHeader className="flex items-center justify-between">
+            <DsPanelTitle>Forced vs Sampled</DsPanelTitle>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -887,7 +893,7 @@ export function MetricsView({
                 <p className="text-2xs">Add comment</p>
               </TooltipContent>
             </Tooltip>
-          </div>
+          </DsPanelHeader>
           {commentingOnChart === "forced-sampled" && (
             <InlineChartCommentForm
               requestId={requestId}
@@ -900,7 +906,7 @@ export function MetricsView({
               }}
             />
           )}
-          <div className="panel-content">
+          <DsPanelContent>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -932,14 +938,14 @@ export function MetricsView({
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
+          </DsPanelContent>
+        </DsPanel>
 
         {/* Action Distribution */}
         {actionDistribution.length > 0 && (
-          <div className="panel">
-            <div className="panel-header flex items-center justify-between">
-              <span className="panel-title">Action Distribution</span>
+          <DsPanel>
+            <DsPanelHeader className="flex items-center justify-between">
+              <DsPanelTitle>Action Distribution</DsPanelTitle>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -963,7 +969,7 @@ export function MetricsView({
                   <p className="text-2xs">Add comment</p>
                 </TooltipContent>
               </Tooltip>
-            </div>
+            </DsPanelHeader>
             {commentingOnChart === "action-distribution" && (
               <InlineChartCommentForm
                 requestId={requestId}
@@ -976,7 +982,7 @@ export function MetricsView({
                 }}
               />
             )}
-            <div className="panel-content">
+            <DsPanelContent>
               <div className="h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={actionDistribution} layout="vertical">
@@ -1018,8 +1024,8 @@ export function MetricsView({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          </div>
+            </DsPanelContent>
+          </DsPanel>
         )}
       </div>
     </div>

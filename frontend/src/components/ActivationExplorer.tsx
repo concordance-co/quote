@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  FormField,
+  formFieldInputClassName,
+} from "@/components/design-system/FormField";
+import {
   getActivationExplorerFeatureDeltas,
   getActivationExplorerHealth,
   getActivationExplorerRows,
@@ -194,39 +198,38 @@ export default function ActivationExplorer() {
   }, [selectedTopFeatures]);
 
   return (
-    <div className="container max-w-7xl space-y-4">
-      <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Activation Explorer (v0)</CardTitle>
-            <CardDescription>
+    <div className="activation-explorer-page container max-w-7xl space-y-4">
+      <div className="activation-explorer-section grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+        <Card className="activation-panel">
+          <CardHeader className="activation-panel-header">
+            <CardTitle className="activation-panel-title">Activation Explorer (v0)</CardTitle>
+            <CardDescription className="activation-panel-description">
               Run inference with SAE feature extraction and inspect activation data.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <label className="block text-xs font-medium text-muted-foreground">Prompt</label>
-            <textarea
-              className="w-full min-h-28 rounded-md border border-border bg-background px-3 py-2 text-sm"
-              value={form.prompt}
-              onChange={(e) => setForm((prev) => ({ ...prev, prompt: e.target.value }))}
-            />
+          <CardContent className="activation-panel-content space-y-3">
+            <FormField label="Prompt">
+              <textarea
+                className={`${formFieldInputClassName} activation-input min-h-28`}
+                value={form.prompt}
+                onChange={(e) => setForm((prev) => ({ ...prev, prompt: e.target.value }))}
+              />
+            </FormField>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground">Model ID</label>
+              <FormField label="Model ID">
                 <input
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className={`${formFieldInputClassName} activation-input`}
                   value={form.modelId}
                   onChange={(e) => setForm((prev) => ({ ...prev, modelId: e.target.value }))}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground">Max Tokens</label>
+              </FormField>
+              <FormField label="Max Tokens">
                 <input
                   type="number"
                   min={1}
                   max={2048}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className={`${formFieldInputClassName} activation-input`}
                   value={form.maxTokens}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -235,20 +238,18 @@ export default function ActivationExplorer() {
                     }))
                   }
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground">SAE ID</label>
+              </FormField>
+              <FormField label="SAE ID">
                 <input
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className={`${formFieldInputClassName} activation-input`}
                   value={form.saeId}
                   onChange={(e) => setForm((prev) => ({ ...prev, saeId: e.target.value }))}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground">SAE Layer</label>
+              </FormField>
+              <FormField label="SAE Layer">
                 <input
                   type="number"
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className={`${formFieldInputClassName} activation-input`}
                   value={form.saeLayer}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -257,7 +258,7 @@ export default function ActivationExplorer() {
                     }))
                   }
                 />
-              </div>
+              </FormField>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -270,7 +271,7 @@ export default function ActivationExplorer() {
                 Inline SAE
               </label>
 
-              <Button onClick={runModel} disabled={isRunning}>
+              <Button className="activation-primary-button" onClick={runModel} disabled={isRunning}>
                 {isRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
                 Run
               </Button>
@@ -301,17 +302,17 @@ export default function ActivationExplorer() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Runs</CardTitle>
-            <CardDescription>Indexed metadata from backend run index.</CardDescription>
+        <Card className="activation-panel">
+          <CardHeader className="activation-panel-header">
+            <CardTitle className="activation-panel-title">Recent Runs</CardTitle>
+            <CardDescription className="activation-panel-description">Indexed metadata from backend run index.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="activation-panel-content space-y-2">
             {runs.length === 0 && <p className="text-sm text-muted-foreground">No runs indexed yet.</p>}
             {runs.map((run) => (
               <button
                 key={run.request_id}
-                className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                className={`activation-run-item w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                   selectedRequestId === run.request_id
                     ? "border-primary bg-primary/5"
                     : "border-border hover:bg-accent/30"
@@ -328,12 +329,12 @@ export default function ActivationExplorer() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Output + Summary</CardTitle>
+      <div className="activation-explorer-section grid gap-4 lg:grid-cols-2">
+        <Card className="activation-panel">
+          <CardHeader className="activation-panel-header">
+            <CardTitle className="activation-panel-title">Output + Summary</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="activation-panel-content space-y-3">
             {!selectedSummary && !lastRun && (
               <p className="text-sm text-muted-foreground">Run the model or select a recent request to inspect.</p>
             )}
@@ -352,36 +353,36 @@ export default function ActivationExplorer() {
             )}
 
             {lastRun && selectedRequestId === lastRun.request_id && (
-              <pre className="max-h-52 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
+              <pre className="activation-code-block max-h-52 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
                 {lastRun.output.text || "(empty output)"}
               </pre>
             )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Features</CardTitle>
-            <CardDescription>Aggregated by request (max activation + hit count).</CardDescription>
+        <Card className="activation-panel">
+          <CardHeader className="activation-panel-header">
+            <CardTitle className="activation-panel-title">Top Features</CardTitle>
+            <CardDescription className="activation-panel-description">Aggregated by request (max activation + hit count).</CardDescription>
           </CardHeader>
-          <CardContent>
-            <pre className="max-h-64 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
+          <CardContent className="activation-panel-content">
+            <pre className="activation-code-block max-h-64 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
               {topFeaturesPreview}
             </pre>
           </CardContent>
         </Card>
       </div>
 
-      <div className={`grid gap-4 ${FEATURE_DELTAS_ENABLED ? "lg:grid-cols-2" : ""}`}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Activation Rows</CardTitle>
-            <CardDescription>Preview rows from SAE timeline.</CardDescription>
+      <div className={`activation-explorer-section grid gap-4 ${FEATURE_DELTAS_ENABLED ? "lg:grid-cols-2" : ""}`}>
+        <Card className="activation-panel">
+          <CardHeader className="activation-panel-header">
+            <CardTitle className="activation-panel-title">Activation Rows</CardTitle>
+            <CardDescription className="activation-panel-description">Preview rows from SAE timeline.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="activation-panel-content">
             {!selectedRows && <p className="text-sm text-muted-foreground">No rows loaded.</p>}
             {selectedRows && (
-              <div className="max-h-80 overflow-auto rounded-md border border-border">
+              <div className="activation-table-wrap max-h-80 overflow-auto rounded-md border border-border">
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-muted">
                     <tr>
@@ -412,18 +413,18 @@ export default function ActivationExplorer() {
         </Card>
 
         {FEATURE_DELTAS_ENABLED && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Feature Delta Timeline</CardTitle>
-              <CardDescription>Query per-feature activation deltas over generation.</CardDescription>
+          <Card className="activation-panel">
+            <CardHeader className="activation-panel-header">
+              <CardTitle className="activation-panel-title">Feature Delta Timeline</CardTitle>
+              <CardDescription className="activation-panel-description">Query per-feature activation deltas over generation.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="activation-panel-content space-y-3">
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   min={0}
                   placeholder="Feature ID"
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className={`${formFieldInputClassName} activation-input`}
                   value={featureIdInput}
                   onChange={(e) => setFeatureIdInput(e.target.value)}
                 />
@@ -443,7 +444,7 @@ export default function ActivationExplorer() {
               )}
 
               {featureDeltas && (
-                <div className="max-h-72 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs">
+                <div className="activation-code-block max-h-72 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs">
                   {featureDeltas.rows.map((row, idx) => {
                     const entry = row as Record<string, unknown>;
                     return (

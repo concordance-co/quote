@@ -58,7 +58,7 @@ export const ActionSummary = memo(function ActionSummary({
       return (
         <span className="flex items-center gap-2">
           {text && (
-            <span className="font-mono text-pink-300 bg-pink-500/10 px-1.5 py-0.5 rounded">
+            <span className="font-mono text-pink-800 bg-pink-500/12 px-1.5 py-0.5 rounded">
               "{String(text).slice(0, 40)}"
             </span>
           )}
@@ -74,8 +74,8 @@ export const ActionSummary = memo(function ActionSummary({
         (payload.backtrack_steps as number) || (payload.n as number) || 0;
       return (
         <span className="flex items-center gap-2">
-          <span className="text-orange-300">Backtrack</span>
-          <span className="font-mono text-orange-300 bg-orange-500/10 px-1.5 py-0.5 rounded">
+          <span className="text-orange-800">Backtrack</span>
+          <span className="font-mono text-orange-800 bg-orange-500/12 px-1.5 py-0.5 rounded">
             {n} step{n !== 1 ? "s" : ""}
           </span>
         </span>
@@ -87,7 +87,7 @@ export const ActionSummary = memo(function ActionSummary({
       return (
         <span className="flex items-center gap-2">
           <span className="text-muted-foreground">Logits shape:</span>
-          <span className="font-mono text-cyan-300">
+          <span className="font-mono text-cyan-800">
             [{Array.isArray(shape) ? shape.join(", ") : String(shape || "")}]
           </span>
         </span>
@@ -99,7 +99,7 @@ export const ActionSummary = memo(function ActionSummary({
       const count = (payload.token_count as number) || 0;
       return (
         <span className="flex items-center gap-2">
-          <span className="font-mono text-teal-300">{count} tokens</span>
+          <span className="font-mono text-teal-800">{count} tokens</span>
           {maxSteps && (
             <>
               <span className="text-muted-foreground/50">•</span>
@@ -119,7 +119,7 @@ export const ActionSummary = memo(function ActionSummary({
       const errorMsg = payload.error_message as string | undefined;
       return (
         <span className="flex items-center gap-2">
-          <span className="text-red-400">
+          <span className="text-red-700">
             {errorMsg ? String(errorMsg).slice(0, 50) : "Error occurred"}
           </span>
         </span>

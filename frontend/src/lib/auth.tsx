@@ -9,6 +9,7 @@ import React, {
 import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+const DEV_BYPASS_AUTH = import.meta.env.VITE_DEV_BYPASS_AUTH === "true";
 
 // Storage key for persisting the API key
 const API_KEY_STORAGE_KEY = "concordance_api_key";
@@ -63,6 +64,12 @@ type ValidateApiKeyResult = {
   error: string | null;
 };
 
+const DEV_BYPASS_USER: AuthUser = {
+  name: "Design Preview",
+  allowedApiKey: "dev-bypass",
+  isAdmin: true,
+};
+
 // Provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -76,6 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Validate an API key against the backend
   const validateApiKey = useCallback(
     async (apiKey: string): Promise<ValidateApiKeyResult> => {
+      if (DEV_BYPASS_AUTH) {
+        return { user: DEV_BYPASS_USER, error: null };
+      }
+
       try {
         const response = await axios.get<ValidateKeyResponse>(
           `${API_BASE_URL}/auth/validate`,
@@ -106,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return {
               user: null,
               error:
-                "Cannot reach the API service. Confirm backend is running on localhost:8080.",
+                "Cannot reach the API service. Confirm backend is running on localhost:6767.",
             };
           }
 
@@ -131,6 +142,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state from localStorage
   useEffect(() => {
     const initAuth = async () => {
+      if (DEV_BYPASS_AUTH) {
+        setState({
+          isAuthenticated: true,
+          isLoading: false,
+          user: DEV_BYPASS_USER,
+          apiKey: "dev-bypass",
+          error: null,
+        });
+        return;
+      }
+
       const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
 
       if (storedKey) {
@@ -166,6 +188,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Login function
   const login = useCallback(
     async (apiKey: string): Promise<boolean> => {
+      if (DEV_BYPASS_AUTH) {
+        localStorage.setItem(API_KEY_STORAGE_KEY, "dev-bypass");
+        setState({
+          isAuthenticated: true,
+          isLoading: false,
+          user: DEV_BYPASS_USER,
+          apiKey: "dev-bypass",
+          error: null,
+        });
+        return true;
+      }
+
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       const result = await validateApiKey(apiKey);

@@ -5,20 +5,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-full border text-xs font-medium tracking-[0.04em] ring-offset-background transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+  "ds-button inline-flex items-center justify-center whitespace-nowrap rounded-full border text-xs font-medium tracking-[0.04em] ring-offset-background transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "border-black/45 bg-black/90 text-white shadow-[0_1px_0_rgba(255,255,255,0.16)_inset] hover:-translate-y-px hover:bg-black hover:shadow-[0_10px_22px_rgba(8,8,8,0.28)]",
+          "ds-button--default border-black/45 bg-black/90 text-white shadow-[0_1px_0_rgba(255,255,255,0.16)_inset] hover:-translate-y-px hover:bg-black hover:shadow-[0_10px_22px_rgba(8,8,8,0.28)]",
         destructive:
-          "border-red-400/50 bg-red-500/20 text-red-200 hover:bg-red-500/30",
+          "ds-button--destructive border-red-400/50 bg-red-500/20 text-red-200 hover:bg-red-500/30",
         outline:
-          "border-white/35 bg-transparent text-foreground hover:-translate-y-px hover:bg-white/10",
+          "ds-button--outline border-border bg-transparent text-foreground hover:-translate-y-px hover:bg-accent/50",
         secondary:
-          "border-white/30 bg-white/16 text-foreground backdrop-blur-sm hover:-translate-y-px hover:bg-white/24",
-        ghost: "border-transparent bg-transparent text-foreground hover:bg-white/10",
-        link: "border-transparent bg-transparent text-primary underline-offset-4 hover:underline",
+          "ds-button--secondary border-border bg-secondary text-foreground hover:-translate-y-px hover:bg-accent",
+        ghost: "ds-button--ghost border-transparent bg-transparent text-foreground hover:bg-accent/50",
+        link: "ds-button--link border-transparent bg-transparent text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-8 px-3.5 py-1.5",

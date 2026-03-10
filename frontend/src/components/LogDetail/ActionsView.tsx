@@ -6,6 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DsPanel, DsPanelHeader, DsPanelTitle } from "@/components/design-system/Panel";
 import { cn, formatDate } from "@/lib/utils";
 import type { LogResponse, ActionLog, ModCallLog } from "@/types/api";
 
@@ -28,7 +29,7 @@ export function ActionsView({ log, onNavigateToTrace }: ActionsViewProps) {
 
   if (actions.length === 0) {
     return (
-      <div className="panel">
+      <DsPanel>
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Zap className="h-5 w-5 text-muted-foreground mb-2" />
           <p className="text-sm font-medium mb-1">No actions recorded</p>
@@ -36,18 +37,18 @@ export function ActionsView({ log, onNavigateToTrace }: ActionsViewProps) {
             No mod actions were triggered during this request
           </p>
         </div>
-      </div>
+      </DsPanel>
     );
   }
 
   return (
-    <div className="panel h-full overflow-auto">
-      <div className="panel-header">
-        <span className="panel-title">Mod Actions</span>
+    <DsPanel className="h-full overflow-auto">
+      <DsPanelHeader>
+        <DsPanelTitle>Mod Actions</DsPanelTitle>
         <span className="text-2xs text-muted-foreground">
           {actions.length} actions
         </span>
-      </div>
+      </DsPanelHeader>
       <div className="overflow-x-auto">
         <table className="data-table">
           <thead>
@@ -72,7 +73,7 @@ export function ActionsView({ log, onNavigateToTrace }: ActionsViewProps) {
           </tbody>
         </table>
       </div>
-    </div>
+    </DsPanel>
   );
 }
 

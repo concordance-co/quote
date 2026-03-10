@@ -3,16 +3,14 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Link,
   Navigate,
   useLocation,
 } from "react-router-dom";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
-import { Activity, ExternalLink, Key, Sparkles } from "lucide-react";
+import { Key } from "lucide-react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import LogsList from "@/components/LogsList";
 import LogDetail from "@/components/LogDetail";
 import PublicCollectionView from "@/components/PublicCollectionView";
@@ -24,15 +22,49 @@ import CollectionsSidebar, {
   type FilterType,
 } from "@/components/CollectionsSidebar";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { LoginModal, UserMenu } from "@/components/LoginModal";
-import { GitHubStarButton } from "@/components/GitHubStarButton";
+import { LoginModal } from "@/components/LoginModal";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
 const FILTER_STORAGE_KEY = "concordance_last_filter";
+const SHELL_TONE_STORAGE_KEY = "concordance_shell_tone";
+type ShellTone = "paper" | "ink";
+
+function useShellTone() {
+  const [shellTone, setShellTone] = useState<ShellTone>(() => {
+    if (typeof window === "undefined") return "paper";
+    const stored = localStorage.getItem(SHELL_TONE_STORAGE_KEY);
+    return stored === "ink" ? "ink" : "paper";
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.dataset.shellTone = shellTone;
+    return () => {
+      delete document.body.dataset.shellTone;
+    };
+  }, [shellTone]);
+
+  const toggleShellTone = useCallback(() => {
+    setShellTone((prev) => {
+      const next: ShellTone = prev === "paper" ? "ink" : "paper";
+      try {
+        localStorage.setItem(SHELL_TONE_STORAGE_KEY, next);
+      } catch (error) {
+        console.error("Failed to save shell tone:", error);
+      }
+      return next;
+    });
+  }, []);
+
+  return { shellTone, toggleShellTone };
+}
 
 function AppContent() {
   const location = useLocation();
   const isDetailView = location.pathname.startsWith("/logs/");
   const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { shellTone, toggleShellTone } = useShellTone();
 
   // Sidebar state - default to hidden on mobile
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -164,19 +196,15 @@ function AppContent() {
   // Show login prompt if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="relative h-screen overflow-hidden bg-background text-foreground flex flex-col">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(239,51,51,0.16),transparent_35%),radial-gradient(circle_at_78%_8%,rgba(74,111,224,0.22),transparent_32%),radial-gradient(circle_at_50%_85%,rgba(46,140,67,0.16),transparent_28%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_40%,rgba(255,255,255,0)_100%)]" />
+      <div
+        className={`brand-shell ${shellTone === "ink" ? "brand-shell-ink" : ""} relative min-h-screen flex flex-col`}
+      >
         {/* Header */}
         <header className="sticky top-0 z-50 w-full border-b border-white/15 bg-background/70 backdrop-blur-xl">
           <div className="container flex h-10 max-w-5xl items-center">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <img
-                src="/elvis-logo.png"
-                alt="Concordance"
-                className="w-6 h-6 object-contain"
-              />
+              <img src="/concordance_icon_white.png" alt="Concordance" className="w-5 h-5 object-contain" />
               <span className="font-display text-sm">Concordance</span>
             </div>
           </div>
@@ -210,12 +238,7 @@ function AppContent() {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="relative z-[1] border-t border-white/10 shrink-0">
-          <div className="container flex items-center justify-between h-7 max-w-5xl text-2xs text-muted-foreground">
-            <span>Concordance v1.0</span>
-          </div>
-        </footer>
+        <SiteFooter />
 
         <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
       </div>
@@ -223,111 +246,22 @@ function AppContent() {
   }
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Compact Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container flex flex-wrap gap-2 py-2 max-w-5xl items-center min-h-10">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 mr-2 shrink-0">
-            <img
-              src="/elvis-logo.png"
-              alt="Concordance"
-              className="w-6 h-6 object-contain"
-            />
-            <span className="font-semibold text-sm whitespace-nowrap">
-              Concordance
-            </span>
-          </Link>
-
-          {/* Navigation - Playground first, Logs second */}
-          <nav className="flex items-center gap-1 flex-1 min-w-0">
-            <Button
-              variant={
-                location.pathname === "/playground" ? "secondary" : "ghost"
-              }
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0 gap-1"
-              asChild
-            >
-              <Link to="/playground">
-                <Sparkles className="h-3 w-3" />
-                Playground
-              </Link>
-            </Button>
-            <Button
-              variant={
-                !isDetailView && location.pathname !== "/playground"
-                  ? "secondary"
-                  : "ghost"
-              }
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0"
-              asChild
-            >
-              <Link to="/">Logs</Link>
-            </Button>
-            {filterLabel && !isDetailView && (
-              <Badge
-                variant="outline"
-                className="h-5 text-2xs px-1.5 font-normal whitespace-nowrap"
-              >
-                {filterLabel}
-              </Badge>
-            )}
-          </nav>
-
-          {/* External Links */}
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="https://docs.concordance.co"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                Docs
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-            <GitHubStarButton />
-          </div>
-
-          {/* API & User Menu */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="/api/health"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                API
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-            {user && (
-              <UserMenu
-                onLogout={logout}
-                userName={user.name}
-                isAdmin={user.isAdmin}
-              />
-            )}
-          </div>
-        </div>
-      </header>
+    <div
+      className={`brand-shell ${shellTone === "ink" ? "brand-shell-ink" : ""} relative min-h-screen flex flex-col`}
+    >
+      <SiteHeader
+        activeRoute="logs"
+        user={user}
+        onLogout={logout}
+        filterLabel={!isDetailView ? filterLabel : null}
+        shellTone={shellTone}
+        onToggleShellTone={toggleShellTone}
+      />
 
       {/* Main Content with Optional Sidebar (admin only) */}
-      <div className="flex-1 flex min-h-0">
+      <div
+        className={`flex-1 flex min-h-0 ${shellTone === "ink" ? "bg-[#130e0f]" : ""}`}
+      >
         {/* Collections Sidebar - only for admin users */}
         {user?.isAdmin && !isDetailView && filterLoaded && (
           <CollectionsSidebar
@@ -339,7 +273,7 @@ function AppContent() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 container max-w-7xl py-3 flex flex-col min-h-0 overflow-hidden">
+        <main className="app-main-shell app-main-shell--logs flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 min-h-0">
             <Routes>
               <Route
@@ -382,12 +316,7 @@ function AppContent() {
         </main>
       </div>
 
-      {/* Compact Footer */}
-      <footer className="border-t border-border shrink-0">
-        <div className="container flex items-center justify-between h-7 max-w-7xl text-2xs text-muted-foreground">
-          <span>Concordance v1.0</span>
-        </div>
-      </footer>
+      <SiteFooter maxWidth="7xl" />
 
       <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
     </div>
@@ -396,231 +325,54 @@ function AppContent() {
 
 function PlaygroundPage() {
   const { user, logout } = useAuth();
+  const { shellTone, toggleShellTone } = useShellTone();
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container flex flex-wrap gap-2 py-2 max-w-5xl items-center min-h-10">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 mr-2 shrink-0">
-            <img
-              src="/elvis-logo.png"
-              alt="Concordance"
-              className="w-6 h-6 object-contain"
-            />
-            <span className="font-semibold text-sm whitespace-nowrap">
-              Concordance
-            </span>
-          </Link>
-
-          {/* Navigation - Playground first, Logs second */}
-          <nav className="flex items-center gap-1 flex-1 min-w-0">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0 gap-1"
-              asChild
-            >
-              <Link to="/playground">
-                <Sparkles className="h-3 w-3" />
-                Playground
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0 gap-1"
-              asChild
-            >
-              <Link to="/activations">
-                <Activity className="h-3 w-3" />
-                Activations
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0"
-              asChild
-            >
-              <Link to="/">Logs</Link>
-            </Button>
-          </nav>
-
-          {/* External Links */}
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="https://docs.concordance.co"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                Docs
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-            <GitHubStarButton />
-          </div>
-
-          {/* API & User Menu */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="/api/health"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                API
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-            {user && (
-              <UserMenu
-                onLogout={logout}
-                userName={user.name}
-                isAdmin={user.isAdmin}
-              />
-            )}
-          </div>
-        </div>
-      </header>
+    <div
+      className={`brand-shell ${shellTone === "ink" ? "brand-shell-ink" : ""} relative min-h-screen flex flex-col`}
+    >
+      <SiteHeader
+        activeRoute="playground"
+        user={user}
+        onLogout={logout}
+        showActivationsNav
+        shellTone={shellTone}
+        onToggleShellTone={toggleShellTone}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 py-4 flex flex-col min-h-0 overflow-hidden">
+      <main className="app-main-shell app-main-shell--playground flex-1 flex flex-col min-h-0 overflow-hidden">
         <Playground />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border shrink-0">
-        <div className="container flex items-center justify-between h-7 max-w-5xl text-2xs text-muted-foreground">
-          <span>Concordance v1.0</span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
 
 function ActivationExplorerPage() {
   const { user, logout } = useAuth();
+  const { shellTone, toggleShellTone } = useShellTone();
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container flex flex-wrap gap-2 py-2 max-w-7xl items-center min-h-10">
-          <Link to="/" className="flex items-center gap-2 mr-2 shrink-0">
-            <img
-              src="/elvis-logo.png"
-              alt="Concordance"
-              className="w-6 h-6 object-contain"
-            />
-            <span className="font-semibold text-sm whitespace-nowrap">
-              Concordance
-            </span>
-          </Link>
+    <div
+      className={`brand-shell ${shellTone === "ink" ? "brand-shell-ink" : ""} relative min-h-screen flex flex-col`}
+    >
+      <SiteHeader
+        activeRoute="activations"
+        user={user}
+        onLogout={logout}
+        showActivationsNav
+        maxWidth="7xl"
+        shellTone={shellTone}
+        onToggleShellTone={toggleShellTone}
+      />
 
-          <nav className="flex items-center gap-1 flex-1 min-w-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0 gap-1"
-              asChild
-            >
-              <Link to="/playground">
-                <Sparkles className="h-3 w-3" />
-                Playground
-              </Link>
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0 gap-1"
-              asChild
-            >
-              <Link to="/activations">
-                <Activity className="h-3 w-3" />
-                Activations
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2 shrink-0"
-              asChild
-            >
-              <Link to="/">Logs</Link>
-            </Button>
-          </nav>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="https://docs.concordance.co"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                Docs
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-            <GitHubStarButton />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              asChild
-            >
-              <a
-                href="/api/health"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                API
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-            {user && (
-              <UserMenu
-                onLogout={logout}
-                userName={user.name}
-                isAdmin={user.isAdmin}
-              />
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 py-4 overflow-auto">
+      <main className="app-main-shell app-main-shell--activations flex-1 py-4 overflow-auto">
         <ActivationExplorer />
       </main>
 
-      <footer className="border-t border-border shrink-0">
-        <div className="container flex items-center justify-between h-7 max-w-7xl text-2xs text-muted-foreground">
-          <span>Concordance v1.0</span>
-        </div>
-      </footer>
+      <SiteFooter maxWidth="7xl" />
     </div>
   );
 }

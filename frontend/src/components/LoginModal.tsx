@@ -12,6 +12,7 @@ import {
   FormField,
   formFieldInputClassName,
 } from "@/components/design-system/FormField";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { Key, Loader2, AlertCircle, LogOut, User } from "lucide-react";
 
@@ -116,24 +117,35 @@ interface UserMenuProps {
   onLogout: () => void;
   userName: string;
   isAdmin: boolean;
+  tone?: "paper" | "ink";
 }
 
-export function UserMenu({ onLogout, userName, isAdmin }: UserMenuProps) {
+export function UserMenu({
+  onLogout,
+  userName,
+  isAdmin,
+  tone = "paper",
+}: UserMenuProps) {
+  const isInk = tone === "ink";
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-xs">
+    <div
+      className={cn(
+        "flex items-center gap-2",
+        isInk ? "text-white" : "text-[var(--brand-ink)]",
+      )}
+    >
+      <div className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.08em]">
         <User className="h-3 w-3" />
-        <span className="font-medium">{userName}</span>
-        {isAdmin && (
-          <span className="px-1 py-0.5 rounded text-2xs bg-primary/10 text-primary">
-            Admin
-          </span>
-        )}
+        <span className="font-medium normal-case tracking-normal">{userName}</span>
+        {isAdmin && <span className="text-[10px] opacity-70 uppercase">Admin</span>}
       </div>
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 text-xs px-2"
+        className={cn(
+          "h-7 px-0 font-mono text-xs uppercase tracking-[0.08em]",
+          isInk ? "text-white/85 hover:text-white" : "text-[var(--brand-ink)] hover:text-white",
+        )}
         onClick={onLogout}
       >
         <LogOut className="h-3 w-3 mr-1" />

@@ -18,10 +18,10 @@ export const ModCallCard = memo(function ModCallCard({
   return (
     <div className="relative">
       {/* Mod call card */}
-      <div className="rounded border border-yellow-500/20 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors">
+      <div className="rounded border border-yellow-500/28 bg-yellow-500/10 hover:bg-yellow-500/16 transition-colors">
         <div className="flex items-center gap-1.5 px-1.5 py-1 group">
-          <div className="w-5 h-5 rounded bg-yellow-500/20 flex items-center justify-center">
-            <Zap className="h-2.5 w-2.5 text-yellow-400" />
+          <div className="w-5 h-5 rounded bg-yellow-500/24 flex items-center justify-center">
+            <Zap className="h-2.5 w-2.5 text-yellow-800" />
           </div>
 
           {logs.length > 0 && (
@@ -37,7 +37,7 @@ export const ModCallCard = memo(function ModCallCard({
             </button>
           )}
 
-          <span className="text-xs font-medium text-yellow-300">
+          <span className="text-xs font-medium text-yellow-900">
             {modCall.mod_name}
           </span>
           <span className="text-2xs text-muted-foreground px-1 rounded bg-muted/50">
@@ -76,7 +76,7 @@ export const ModCallCard = memo(function ModCallCard({
         {/* Mod call details */}
         {showDetails && (
           <div className="px-1.5 pb-1.5">
-            <div className="bg-black/20 rounded p-1.5 text-2xs border border-border/30">
+            <div className="bg-white/65 rounded p-1.5 text-2xs border border-border/35">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <span className="text-muted-foreground">Event ID:</span>
                 <span className="font-mono">{modCall.event_id}</span>
@@ -85,7 +85,7 @@ export const ModCallCard = memo(function ModCallCard({
                 {modCall.exception_message && (
                   <>
                     <span className="text-muted-foreground">Exception:</span>
-                    <span className="text-red-400">
+                    <span className="text-red-700">
                       {modCall.exception_message}
                     </span>
                   </>
@@ -101,7 +101,7 @@ export const ModCallCard = memo(function ModCallCard({
             {logs.map((log) => (
               <div
                 key={log.id}
-                className="flex items-start gap-1.5 text-2xs bg-black/10 rounded p-1.5"
+                className="flex items-start gap-1.5 text-2xs bg-white/60 rounded p-1.5 border border-border/20"
               >
                 <LogLevelBadge level={log.log_level} />
                 <span className="text-muted-foreground break-all whitespace-pre-wrap">

@@ -19,6 +19,22 @@ export interface TokenProps {
   colorMode?: TokenColorMode;
 }
 
+function parseRgb(color: string): { r: number; g: number; b: number } | null {
+  const match = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i);
+  if (!match) return null;
+  return {
+    r: Number(match[1]),
+    g: Number(match[2]),
+    b: Number(match[3]),
+  };
+}
+
+function toRgba(color: string, alpha: number): string {
+  const parsed = parseRgb(color);
+  if (!parsed) return color;
+  return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${alpha})`;
+}
+
 /**
  * Get the border color for a token based on the color mode.
  */
@@ -82,6 +98,16 @@ export const Token = memo(function Token({
 
   // Calculate border color based on color mode
   const borderColor = getTokenBorderColor(item, colorMode);
+  const backgroundColor = item.erased
+    ? "rgba(239, 51, 51, 0.32)"
+    : item.forced
+      ? "rgba(74, 111, 224, 0.32)"
+      : toRgba(borderColor, 0.34);
+  const textColor = item.erased
+    ? "var(--token-chip-strong-text, var(--token-chip-text, var(--brand-ink)))"
+    : item.forced
+      ? "var(--token-chip-strong-text, var(--token-chip-text, var(--brand-ink)))"
+      : "var(--token-chip-text, var(--brand-ink))";
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (onHover) {
@@ -109,23 +135,21 @@ export const Token = memo(function Token({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          "inline-flex items-center rounded-sm font-mono transition-colors whitespace-pre",
+          "token-chip inline-flex items-center rounded-sm font-mono transition-colors whitespace-pre",
           compact ? "px-0.5 py-0.5 text-2xs" : "px-1 py-0.5 text-2xs",
-          item.erased
-            ? "bg-red-900/50 text-red-300 line-through"
-            : item.forced
-              ? "bg-pink-900/50 text-pink-300 hover:bg-pink-900/70"
-              : "bg-emerald-900/40 text-emerald-300 hover:bg-emerald-900/60",
+          item.erased && "line-through",
           selectedStep === item.step &&
             "ring-1 ring-primary ring-offset-1 ring-offset-background",
         )}
         style={{
-          borderWidth: "0.5px",
+          borderWidth: "1px",
           borderStyle: "solid",
           marginTop: compact ? "3px" : "4px",
           paddingLeft: compact ? "3px" : "4px",
           paddingRight: compact ? "3px" : "4px",
           borderColor,
+          backgroundColor,
+          color: textColor,
         }}
       >
         {displayText}

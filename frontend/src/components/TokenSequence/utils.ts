@@ -3,6 +3,14 @@ import type { TopToken } from "@/types/api";
 // Re-export TopToken for use in calculateBranchiness parameter type
 export type { TopToken };
 
+const BRAND = {
+  red: { r: 239, g: 51, b: 51 },
+  blue: { r: 74, g: 111, b: 224 },
+  green: { r: 46, g: 140, b: 67 },
+  yellow: { r: 245, g: 205, b: 47 },
+  inkRed: { r: 125, g: 24, b: 24 },
+};
+
 /**
  * Calculate flatness (normalized entropy) of a probability distribution.
  * Returns a value from 0 to 1, where 1 = perfectly flat (uniform), 0 = peaked.
@@ -37,11 +45,11 @@ export function calculateFlatness(topTokens: TopToken[]): number | null {
  * Interpolates: green (0%) → blue (40%) → orange (75%) → red (90%+)
  */
 export function getFlatnessColor(flatness: number): string {
-  // Color stops
-  const green = { r: 16, g: 185, b: 129 }; // emerald-500
-  const blue = { r: 59, g: 130, b: 246 }; // blue-500
-  const orange = { r: 245, g: 158, b: 11 }; // amber-500
-  const red = { r: 239, g: 68, b: 68 }; // red-500
+  // Brand-aligned stops: green -> blue -> yellow -> red
+  const green = BRAND.green;
+  const blue = BRAND.blue;
+  const yellow = BRAND.yellow;
+  const red = BRAND.red;
 
   let r: number, g: number, b: number;
 
@@ -52,17 +60,17 @@ export function getFlatnessColor(flatness: number): string {
     g = Math.round(green.g + (blue.g - green.g) * t);
     b = Math.round(green.b + (blue.b - green.b) * t);
   } else if (flatness <= 0.75) {
-    // Interpolate from blue to orange (40% to 75%)
+    // Interpolate from blue to yellow (40% to 75%)
     const t = (flatness - 0.4) / 0.35;
-    r = Math.round(blue.r + (orange.r - blue.r) * t);
-    g = Math.round(blue.g + (orange.g - blue.g) * t);
-    b = Math.round(blue.b + (orange.b - blue.b) * t);
+    r = Math.round(blue.r + (yellow.r - blue.r) * t);
+    g = Math.round(blue.g + (yellow.g - blue.g) * t);
+    b = Math.round(blue.b + (yellow.b - blue.b) * t);
   } else if (flatness <= 0.9) {
-    // Interpolate from orange to red (75% to 90%)
+    // Interpolate from yellow to red (75% to 90%)
     const t = (flatness - 0.75) / 0.15;
-    r = Math.round(orange.r + (red.r - orange.r) * t);
-    g = Math.round(orange.g + (red.g - orange.g) * t);
-    b = Math.round(orange.b + (red.b - orange.b) * t);
+    r = Math.round(yellow.r + (red.r - yellow.r) * t);
+    g = Math.round(yellow.g + (red.g - yellow.g) * t);
+    b = Math.round(yellow.b + (red.b - yellow.b) * t);
   } else {
     // Stay red (90%+)
     r = red.r;
@@ -80,11 +88,11 @@ export function getFlatnessColor(flatness: number): string {
  * Low probability (uncertain) = red
  */
 export function getProbabilityColor(prob: number): string {
-  // Color stops - inverted from flatness (high prob = good = green)
-  const green = { r: 16, g: 185, b: 129 }; // emerald-500 (high prob)
-  const yellow = { r: 234, g: 179, b: 8 }; // yellow-500 (medium prob)
-  const orange = { r: 245, g: 158, b: 11 }; // amber-500 (low prob)
-  const red = { r: 239, g: 68, b: 68 }; // red-500 (very low prob)
+  // Brand-aligned stops (high -> low): green -> yellow -> red -> ink-red
+  const green = BRAND.green;
+  const yellow = BRAND.yellow;
+  const red = BRAND.red;
+  const inkRed = BRAND.inkRed;
 
   let r: number, g: number, b: number;
 
@@ -100,22 +108,22 @@ export function getProbabilityColor(prob: number): string {
     g = Math.round(green.g + (yellow.g - green.g) * t);
     b = Math.round(green.b + (yellow.b - green.b) * t);
   } else if (prob >= 0.2) {
-    // Interpolate from yellow to orange (50% to 20%)
+    // Interpolate from yellow to red (50% to 20%)
     const t = (0.5 - prob) / 0.3;
-    r = Math.round(yellow.r + (orange.r - yellow.r) * t);
-    g = Math.round(yellow.g + (orange.g - yellow.g) * t);
-    b = Math.round(yellow.b + (orange.b - yellow.b) * t);
+    r = Math.round(yellow.r + (red.r - yellow.r) * t);
+    g = Math.round(yellow.g + (red.g - yellow.g) * t);
+    b = Math.round(yellow.b + (red.b - yellow.b) * t);
   } else if (prob >= 0.05) {
-    // Interpolate from orange to red (20% to 5%)
+    // Interpolate from red to ink-red (20% to 5%)
     const t = (0.2 - prob) / 0.15;
-    r = Math.round(orange.r + (red.r - orange.r) * t);
-    g = Math.round(orange.g + (red.g - orange.g) * t);
-    b = Math.round(orange.b + (red.b - orange.b) * t);
+    r = Math.round(red.r + (inkRed.r - red.r) * t);
+    g = Math.round(red.g + (inkRed.g - red.g) * t);
+    b = Math.round(red.b + (inkRed.b - red.b) * t);
   } else {
-    // Very low probability - stay red
-    r = red.r;
-    g = red.g;
-    b = red.b;
+    // Very low probability - stay ink red
+    r = inkRed.r;
+    g = inkRed.g;
+    b = inkRed.b;
   }
 
   return `rgb(${r}, ${g}, ${b})`;
@@ -141,12 +149,11 @@ export function getProbabilityLabel(prob: number): string {
  * Typical LLM entropy ranges from 0-5+ bits depending on context.
  */
 export function getEntropyColor(entropy: number): string {
-  // Color stops
-  const green = { r: 16, g: 185, b: 129 }; // emerald-500 (low entropy = certain)
-  const yellow = { r: 234, g: 179, b: 8 }; // yellow-500 (medium entropy)
-  const orange = { r: 245, g: 158, b: 11 }; // amber-500 (higher entropy)
-  const red = { r: 239, g: 68, b: 68 }; // red-500 (high entropy)
-  const purple = { r: 168, g: 85, b: 247 }; // purple-500 (very high entropy)
+  // Brand-aligned stops: green -> yellow -> red -> blue (very high uncertainty)
+  const green = BRAND.green;
+  const yellow = BRAND.yellow;
+  const red = BRAND.red;
+  const blue = BRAND.blue;
 
   let r: number, g: number, b: number;
 
@@ -162,28 +169,28 @@ export function getEntropyColor(entropy: number): string {
     g = Math.round(green.g + (yellow.g - green.g) * t);
     b = Math.round(green.b + (yellow.b - green.b) * t);
   } else if (entropy <= 2.5) {
-    // Interpolate from yellow to orange (1.5 to 2.5 bits)
+    // Interpolate from yellow to red (1.5 to 2.5 bits)
     const t = (entropy - 1.5) / 1.0;
-    r = Math.round(yellow.r + (orange.r - yellow.r) * t);
-    g = Math.round(yellow.g + (orange.g - yellow.g) * t);
-    b = Math.round(yellow.b + (orange.b - yellow.b) * t);
+    r = Math.round(yellow.r + (red.r - yellow.r) * t);
+    g = Math.round(yellow.g + (red.g - yellow.g) * t);
+    b = Math.round(yellow.b + (red.b - yellow.b) * t);
   } else if (entropy <= 3.5) {
-    // Interpolate from orange to red (2.5 to 3.5 bits)
+    // Stay near red in this band
     const t = (entropy - 2.5) / 1.0;
-    r = Math.round(orange.r + (red.r - orange.r) * t);
-    g = Math.round(orange.g + (red.g - orange.g) * t);
-    b = Math.round(orange.b + (red.b - orange.b) * t);
+    r = Math.round(red.r + (BRAND.inkRed.r - red.r) * (t * 0.35));
+    g = Math.round(red.g + (BRAND.inkRed.g - red.g) * (t * 0.35));
+    b = Math.round(red.b + (BRAND.inkRed.b - red.b) * (t * 0.35));
   } else if (entropy <= 5.0) {
-    // Interpolate from red to purple (3.5 to 5.0 bits)
+    // Interpolate from red to blue (3.5 to 5.0 bits)
     const t = (entropy - 3.5) / 1.5;
-    r = Math.round(red.r + (purple.r - red.r) * t);
-    g = Math.round(red.g + (purple.g - red.g) * t);
-    b = Math.round(red.b + (purple.b - red.b) * t);
+    r = Math.round(red.r + (blue.r - red.r) * t);
+    g = Math.round(red.g + (blue.g - red.g) * t);
+    b = Math.round(red.b + (blue.b - red.b) * t);
   } else {
-    // Very high entropy - stay purple
-    r = purple.r;
-    g = purple.g;
-    b = purple.b;
+    // Very high entropy - stay blue
+    r = blue.r;
+    g = blue.g;
+    b = blue.b;
   }
 
   return `rgb(${r}, ${g}, ${b})`;
@@ -364,11 +371,11 @@ export function calculateBranchiness(
  * High branchiness = bright magenta/pink (trajectory-critical)
  */
 export function getBranchinessColor(branchiness: number): string {
-  // Color stops
-  const low = { r: 100, g: 116, b: 139 }; // slate-500 (muted, unimportant)
-  const medium = { r: 234, g: 179, b: 8 }; // yellow-500 (attention)
-  const high = { r: 236, g: 72, b: 153 }; // pink-500 (critical)
-  const veryHigh = { r: 168, g: 85, b: 247 }; // purple-500 (highly critical)
+  // Brand-aligned stops: blue -> yellow -> red -> ink-red
+  const low = BRAND.blue;
+  const medium = BRAND.yellow;
+  const high = BRAND.red;
+  const veryHigh = BRAND.inkRed;
 
   let r: number, g: number, b: number;
 

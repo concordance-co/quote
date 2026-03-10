@@ -132,7 +132,7 @@ export function TokenSequence({
   }, [items]);
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("token-sequence space-y-2", className)}>
       {/* Header with stats and controls */}
       {(showStats ||
         showControls ||
@@ -253,10 +253,15 @@ export function TokenSequence({
                   className={cn(
                     "inline-flex items-center rounded font-mono border",
                     compact
-                      ? "px-1.5 py-0.5 text-2xs bg-orange-900/40 text-orange-300 border-orange-700/30"
-                      : "px-1.5 py-0.5 text-2xs bg-orange-900/60 text-orange-300 border-orange-700/50",
+                      ? "px-1.5 py-0.5 text-2xs"
+                      : "px-1.5 py-0.5 text-2xs",
                   )}
-                  style={{ marginTop: compact ? "3px" : "4px" }}
+                  style={{
+                    marginTop: compact ? "3px" : "4px",
+                    backgroundColor: "rgba(239, 51, 51, 0.16)",
+                    color: "rgb(125, 24, 24)",
+                    borderColor: "rgba(239, 51, 51, 0.45)",
+                  }}
                 >
                   ← {compact ? `B(${item.n})` : `Backtrack(${item.n})`}
                 </span>
@@ -429,16 +434,34 @@ export function TokenSequence({
         <div className="flex items-center gap-4 text-2xs flex-wrap">
           {/* Token type legend */}
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-pink-900/50 border border-pink-700/50" />
+            <span
+              className="w-3 h-3 rounded"
+              style={{
+                backgroundColor: "rgba(74, 111, 224, 0.2)",
+                border: "1px solid rgba(74, 111, 224, 0.45)",
+              }}
+            />
             <span className="text-muted-foreground">Forced</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-emerald-900/40 border border-emerald-700/50" />
+            <span
+              className="w-3 h-3 rounded"
+              style={{
+                backgroundColor: "rgba(46, 140, 67, 0.2)",
+                border: "1px solid rgba(46, 140, 67, 0.45)",
+              }}
+            />
             <span className="text-muted-foreground">Sampled</span>
           </div>
           {showBacktrack && (
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-red-900/50 border border-red-700/50" />
+              <span
+                className="w-3 h-3 rounded"
+                style={{
+                  backgroundColor: "rgba(239, 51, 51, 0.2)",
+                  border: "1px solid rgba(239, 51, 51, 0.45)",
+                }}
+              />
               <span className="text-muted-foreground">Backtracked</span>
             </div>
           )}

@@ -271,7 +271,7 @@ export default function CollectionsSidebar({
 
   if (collapsed) {
     return (
-      <div className="w-10 border-r border-border bg-muted/30 flex flex-col items-center py-2 gap-2">
+      <div className="collections-sidebar-collapsed w-10 border-r border-[rgba(8,8,8,0.2)] bg-muted/30 flex flex-col items-center py-2 gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -339,7 +339,7 @@ export default function CollectionsSidebar({
   }
 
   return (
-    <div className="w-56 border-r border-border bg-muted/30 flex flex-col h-full">
+    <div className="collections-sidebar w-56 border-r border-[rgba(8,8,8,0.2)] bg-muted/30 flex flex-col h-full">
       {/* Header */}
       <div className="px-3 py-2 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ export default function CollectionsSidebar({
           className={cn(
             "w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs transition-colors",
             isAllActive
-              ? "bg-primary/10 text-primary"
+              ? "sidebar-filter-active"
               : "hover:bg-muted text-muted-foreground hover:text-foreground",
           )}
         >
@@ -614,7 +614,7 @@ export default function CollectionsSidebar({
                                           className={cn(
                                             "w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs transition-colors cursor-pointer",
                                             isCollectionActive(collection.id)
-                                              ? "bg-primary/10 text-primary"
+                                              ? "sidebar-filter-active"
                                               : "hover:bg-muted text-muted-foreground hover:text-foreground",
                                           )}
                                           onClick={() =>
@@ -714,7 +714,7 @@ export default function CollectionsSidebar({
                               className={cn(
                                 "w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs transition-colors",
                                 isApiKeyActive(apiKey.api_key)
-                                  ? "bg-primary/10 text-primary"
+                                  ? "sidebar-filter-active"
                                   : "hover:bg-muted text-muted-foreground hover:text-foreground",
                               )}
                             >

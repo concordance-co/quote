@@ -16,12 +16,12 @@ export const EventSummary = memo(function EventSummary({
       return (
         <span className="flex items-center gap-1.5 flex-wrap">
           <span className="text-muted-foreground">Len:</span>
-          <span className="font-mono text-blue-300">{event.prompt_length}</span>
+          <span className="font-mono text-blue-800">{event.prompt_length}</span>
           {event.max_steps && (
             <>
               <span className="text-muted-foreground/50">•</span>
               <span className="text-muted-foreground">Max:</span>
-              <span className="font-mono text-blue-300">{event.max_steps}</span>
+              <span className="font-mono text-blue-800">{event.max_steps}</span>
             </>
           )}
         </span>
@@ -55,7 +55,7 @@ export const EventSummary = memo(function EventSummary({
       return (
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
-            <span className="font-mono text-emerald-300/80 truncate max-w-md text-2xs">
+            <span className="font-mono text-emerald-800 truncate max-w-md text-2xs">
               "{inputPreview.replace(/\n/g, "↵")}"
             </span>
           </div>
@@ -74,10 +74,10 @@ export const EventSummary = memo(function EventSummary({
                   className={cn(
                     "font-mono",
                     flatness > 0.7
-                      ? "text-amber-400"
+                      ? "text-amber-700"
                       : flatness > 0.4
-                        ? "text-blue-400"
-                        : "text-emerald-400"
+                        ? "text-blue-700"
+                        : "text-emerald-700"
                   )}
                 >
                   {(flatness * 100).toFixed(0)}%
@@ -92,7 +92,7 @@ export const EventSummary = memo(function EventSummary({
     case "Sampled":
       return (
         <span className="flex items-center gap-1.5">
-          <span className="font-mono text-purple-300 bg-purple-500/10 px-1 rounded">
+          <span className="font-mono text-purple-800 bg-purple-500/12 px-1 rounded">
             "{event.token_text}"
           </span>
           <span className="text-muted-foreground/50 text-2xs font-mono">
@@ -104,14 +104,14 @@ export const EventSummary = memo(function EventSummary({
     case "Added":
       return (
         <span className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-mono text-pink-300">
+          <span className="font-mono text-pink-800">
             {event.added_token_count}
           </span>
           <span className="text-muted-foreground">
             token{event.added_token_count !== 1 ? "s" : ""}
           </span>
           {event.token_text && (
-            <span className="font-mono text-pink-300/80 bg-pink-500/10 px-1 rounded text-2xs">
+            <span className="font-mono text-pink-800 bg-pink-500/12 px-1 rounded text-2xs">
               "{event.token_text}"
             </span>
           )}

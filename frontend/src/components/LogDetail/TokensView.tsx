@@ -6,6 +6,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DsPanel,
+  DsPanelContent,
+  DsPanelHeader,
+  DsPanelTitle,
+} from "@/components/design-system/Panel";
 import { cn } from "@/lib/utils";
 import type { LogResponse } from "@/types/api";
 import {
@@ -150,46 +156,46 @@ export function TokensView({
     <div className="space-y-2">
       {/* Prompt */}
       {!hideUserPrompt && log.user_prompt && (
-        <div className="panel">
-          <div className="panel-header">
-            <span className="panel-title">User Prompt</span>
-          </div>
-          <div className="panel-content">
+        <DsPanel>
+          <DsPanelHeader>
+            <DsPanelTitle>User Prompt</DsPanelTitle>
+          </DsPanelHeader>
+          <DsPanelContent>
             <div
               className={cn(
-                "bg-black/30 rounded p-2 font-mono text-xs whitespace-pre-wrap",
+                "rounded border border-border/30 bg-white/70 p-2 font-mono text-xs whitespace-pre-wrap text-[var(--brand-ink)]",
                 !noScrollConstraints &&
                   "max-h-[150px] overflow-auto scrollbar-thin",
               )}
             >
               {log.user_prompt}
             </div>
-          </div>
-        </div>
+          </DsPanelContent>
+        </DsPanel>
       )}
       {/* Final Output */}
-      <div className="panel">
-        <div className="panel-header">
-          <span className="panel-title">Generated Output</span>
-        </div>
-        <div className="panel-content">
+      <DsPanel>
+        <DsPanelHeader>
+          <DsPanelTitle>Generated Output</DsPanelTitle>
+        </DsPanelHeader>
+        <DsPanelContent>
           <div
             className={cn(
-              "bg-black/30 rounded p-2 font-mono text-xs whitespace-pre-wrap",
+              "rounded border border-border/30 bg-white/70 p-2 font-mono text-xs whitespace-pre-wrap text-[var(--brand-ink)]",
               !noScrollConstraints &&
                 "max-h-[200px] overflow-auto scrollbar-thin",
             )}
           >
             {log.final_text || "No output generated"}
           </div>
-        </div>
-      </div>
+        </DsPanelContent>
+      </DsPanel>
 
       {/* Token Sequence with Scrubber */}
-      <div className="panel">
-        <div className="panel-header flex items-center justify-between">
+      <DsPanel>
+        <DsPanelHeader className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="panel-title">Token Sequence</span>
+            <DsPanelTitle>Token Sequence</DsPanelTitle>
             <span className="text-2xs text-muted-foreground">
               {stats.total} tokens ({stats.forced} forced, {stats.sampled}{" "}
               sampled
@@ -278,7 +284,7 @@ export function TokensView({
               </TooltipContent>
             </Tooltip>
           </div>
-        </div>
+        </DsPanelHeader>
 
         {/* Scrubber Controls */}
         <div className="px-3 py-2 border-b border-border/50 flex items-center gap-3">
@@ -326,7 +332,7 @@ export function TokensView({
           </span>
         </div>
 
-        <div className="panel-content">
+        <DsPanelContent>
           <TokenSequence
             items={filteredItems}
             selectedStep={selectedStep}
@@ -341,24 +347,42 @@ export function TokensView({
                 : "No tokens match filter"}
             </span>
           )}
-        </div>
-      </div>
+        </DsPanelContent>
+      </DsPanel>
 
       {/* Legend */}
-      <div className="panel">
+      <DsPanel>
         <div className="px-3 py-2 flex items-center gap-4 text-2xs flex-wrap">
           {/* Token type legend */}
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-pink-900/50 border border-pink-700/50" />
+            <span
+              className="w-3 h-3 rounded"
+              style={{
+                backgroundColor: "rgba(74, 111, 224, 0.2)",
+                border: "1px solid rgba(74, 111, 224, 0.45)",
+              }}
+            />
             <span className="text-muted-foreground">Forced</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-emerald-900/40 border border-emerald-700/50" />
+            <span
+              className="w-3 h-3 rounded"
+              style={{
+                backgroundColor: "rgba(46, 140, 67, 0.2)",
+                border: "1px solid rgba(46, 140, 67, 0.45)",
+              }}
+            />
             <span className="text-muted-foreground">Sampled</span>
           </div>
           {showBacktrack && (
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-red-900/50 border border-red-700/50" />
+              <span
+                className="w-3 h-3 rounded"
+                style={{
+                  backgroundColor: "rgba(239, 51, 51, 0.2)",
+                  border: "1px solid rgba(239, 51, 51, 0.45)",
+                }}
+              />
               <span className="text-muted-foreground">Backtracked</span>
             </div>
           )}
@@ -491,7 +515,7 @@ export function TokensView({
             </>
           )}
         </div>
-      </div>
+      </DsPanel>
     </div>
   );
 }

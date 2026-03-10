@@ -39,7 +39,7 @@ export const EventDetails = memo(function EventDetails({
             <span className="text-muted-foreground block mb-2">
               Input Text:
             </span>
-            <div className="bg-black/40 rounded-md p-2.5 max-h-28 overflow-auto border border-border/30">
+            <div className="bg-white/70 rounded-md p-2.5 max-h-28 overflow-auto border border-border/35">
               <pre className="whitespace-pre-wrap break-all text-xs font-mono">
                 {event.input_text}
               </pre>
@@ -74,10 +74,10 @@ export const EventDetails = memo(function EventDetails({
                             className={cn(
                               "font-mono",
                               flatness > 0.7
-                                ? "text-amber-400"
+                                ? "text-amber-700"
                                 : flatness > 0.4
-                                  ? "text-blue-400"
-                                  : "text-emerald-400"
+                                  ? "text-blue-700"
+                                  : "text-emerald-700"
                             )}
                           >
                             {(flatness * 100).toFixed(0)}%
@@ -87,7 +87,7 @@ export const EventDetails = memo(function EventDetails({
                     );
                   })()}
               </div>
-              <div className="bg-black/40 rounded-md p-2.5 border border-border/30">
+              <div className="bg-white/70 rounded-md p-2.5 border border-border/35">
                 <div className="space-y-1">
                   {event.top_tokens.slice(0, 10).map((tok, i) => (
                     <div key={i} className="flex items-center gap-3 text-xs">
@@ -105,7 +105,7 @@ export const EventDetails = memo(function EventDetails({
                           }}
                         />
                       </div>
-                      <span className="text-emerald-400 w-16 text-right">
+                      <span className="text-emerald-700 w-16 text-right">
                         {(Math.exp(tok.logprob) * 100).toFixed(1)}%
                       </span>
                     </div>
@@ -122,7 +122,7 @@ export const EventDetails = memo(function EventDetails({
           <span className="text-muted-foreground">Token ID:</span>
           <span className="font-mono">{event.sampled_token}</span>
           <span className="text-muted-foreground">Token Text:</span>
-          <span className="font-mono bg-purple-500/10 px-2 py-0.5 rounded inline-block">
+          <span className="font-mono text-purple-800 bg-purple-500/12 px-2 py-0.5 rounded inline-block">
             "{event.token_text}"
           </span>
         </div>
@@ -137,7 +137,7 @@ export const EventDetails = memo(function EventDetails({
             <span
               className={cn(
                 "font-medium",
-                event.forced ? "text-pink-400" : "text-emerald-400"
+                event.forced ? "text-pink-700" : "text-emerald-700"
               )}
             >
               {event.forced ? "Yes" : "No"}
@@ -148,7 +148,7 @@ export const EventDetails = memo(function EventDetails({
               <span className="text-muted-foreground block mb-2">
                 Token IDs:
               </span>
-              <div className="bg-black/40 rounded-md p-2.5 border border-border/30">
+              <div className="bg-white/70 rounded-md p-2.5 border border-border/35">
                 <code className="text-xs font-mono">
                   [{event.added_tokens.join(", ")}]
                 </code>

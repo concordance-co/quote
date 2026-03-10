@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.08em] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand-blue)]",
+  "ds-badge inline-flex items-center rounded-full border px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.08em] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand-blue)]",
   {
     variants: {
       variant: {
-        default: "border-black/35 bg-white/28 text-foreground",
+        default: "ds-badge--default border-border bg-secondary/60 text-foreground",
         secondary:
-          "border-black/35 bg-white/22 text-foreground",
+          "ds-badge--secondary border-border bg-secondary/40 text-foreground",
         destructive:
-          "border-red-700/50 bg-red-900/40 text-red-300",
-        outline: "border-white/30 bg-transparent text-foreground",
+          "ds-badge--destructive border-red-700/50 bg-red-900/40 text-red-300",
+        outline: "ds-badge--outline border-border bg-transparent text-foreground",
         success: "border-green-700/50 bg-green-900/40 text-green-300",
         warning: "border-yellow-700/50 bg-yellow-900/40 text-yellow-300",
         info: "border-blue-700/50 bg-blue-900/40 text-blue-300",
