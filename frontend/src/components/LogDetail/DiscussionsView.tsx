@@ -16,6 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DsPanel, DsPanelHeader, DsPanelTitle } from "@/components/design-system/Panel";
 import { cn } from "@/lib/utils";
 import { useUsername } from "@/hooks/useUsername";
 import {
@@ -163,10 +164,10 @@ export function DiscussionsView({
   };
 
   return (
-    <div className="panel h-full flex flex-col">
-      <div className="panel-header flex items-center justify-between">
+    <DsPanel className="h-full flex flex-col">
+      <DsPanelHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="panel-title">Discussion</span>
+          <DsPanelTitle>Discussion</DsPanelTitle>
           <span className="text-2xs text-muted-foreground">
             {discussions.length}{" "}
             {discussions.length === 1 ? "comment" : "comments"}
@@ -202,7 +203,7 @@ export function DiscussionsView({
             )}
           </div>
         )}
-      </div>
+      </DsPanelHeader>
 
       {/* Username Input Modal */}
       {showUsernameInput && (
@@ -414,7 +415,7 @@ export function DiscussionsView({
           </div>
         )}
       </div>
-    </div>
+    </DsPanel>
   );
 }
 

@@ -50,6 +50,7 @@ import {
 } from "@/components/TokenSequence";
 import CollectionHeader from "@/components/CollectionHeader";
 import { useAuth } from "@/lib/auth";
+import { DsPanel } from "@/components/design-system/Panel";
 
 const ITEMS_PER_PAGE = 45;
 
@@ -68,9 +69,9 @@ const STAR_COLORS: Record<StarLabel, { active: string; inactive: string }> = {
       "bg-transparent text-muted-foreground border-muted-foreground/30 hover:border-emerald-500/50 hover:text-emerald-500",
   },
   B: {
-    active: "bg-blue-500 text-blue-950 border-blue-400",
+    active: "bg-primary text-primary-foreground border-primary/80",
     inactive:
-      "bg-transparent text-muted-foreground border-muted-foreground/30 hover:border-blue-500/50 hover:text-blue-500",
+      "bg-transparent text-muted-foreground border-muted-foreground/30 hover:border-primary/50 hover:text-primary",
   },
 };
 
@@ -623,7 +624,7 @@ export default function LogsList({
 
   if (error && logs.length === 0) {
     return (
-      <div className="panel">
+      <DsPanel>
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <FileText className="h-5 w-5 text-destructive mb-2" />
           <p className="text-sm font-medium mb-1">Failed to load logs</p>
@@ -632,7 +633,7 @@ export default function LogsList({
             Try Again
           </Button>
         </div>
-      </div>
+      </DsPanel>
     );
   }
 
@@ -641,7 +642,7 @@ export default function LogsList({
     collectionName || (collectionId ? `Collection ${collectionId}` : "");
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="logs-list-root h-full flex flex-col overflow-hidden">
       {/* Collection Header (when viewing a collection) */}
       {collectionId !== undefined && !hideCollectionHeader && !readOnly && (
         <CollectionHeader
@@ -653,10 +654,10 @@ export default function LogsList({
         />
       )}
 
-      <div className="flex flex-col gap-3 flex-1 pt-3 min-h-0 overflow-hidden">
+      <div className="logs-list-content flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* Selection Toolbar - admin only */}
         {hasSelection && !readOnly && isAdmin && (
-          <div className="flex items-center justify-between gap-4 px-3 py-2 bg-primary/10 border border-primary/20 rounded-md">
+          <div className="logs-selection-toolbar flex items-center justify-between gap-4 px-3 py-2 bg-primary/10 border border-primary/20 rounded-md">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium">
                 {selectedIds.size} selected
@@ -686,7 +687,7 @@ export default function LogsList({
         )}
 
         {/* Header Row */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="logs-header-row flex items-center justify-between gap-4 py-1">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold">Requests</h1>
             {isAdmin ? (
@@ -893,7 +894,7 @@ export default function LogsList({
 
         {/* Table */}
         <div
-          className="panel flex-1 flex flex-col min-h-0 overflow-hidden"
+          className="logs-table-panel panel flex-1 flex flex-col min-h-0 overflow-hidden"
           style={{ maxHeight: "calc(100vh - 100px)" }}
         >
           {filteredLogs.length === 0 ? (
@@ -1414,7 +1415,7 @@ function LogRow({
                         {log.discussion_count}
                       </span>
                       {unreadCount > 0 && (
-                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-2xs font-medium text-white">
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-2xs font-medium text-primary-foreground">
                           {unreadCount}
                         </span>
                       )}
@@ -1513,7 +1514,7 @@ function LogsListSkeleton() {
       </div>
 
       {/* Table skeleton */}
-      <div className="panel">
+      <DsPanel>
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
@@ -1580,7 +1581,7 @@ function LogsListSkeleton() {
             </tbody>
           </table>
         </div>
-      </div>
+      </DsPanel>
     </div>
   );
 }

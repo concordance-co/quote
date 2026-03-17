@@ -1,11 +1,21 @@
 import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const GITHUB_REPO = "concordance-co/quote";
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
 
-export function GitHubStarButton() {
+type GitHubStarButtonProps = {
+  className?: string;
+  countClassName?: string;
+  tone?: "paper" | "ink";
+};
+
+export function GitHubStarButton({
+  className,
+  countClassName,
+  tone = "paper",
+}: GitHubStarButtonProps = {}) {
   const [starCount, setStarCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,27 +74,32 @@ export function GitHubStarButton() {
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-7 text-xs px-2 gap-1.5"
-      asChild
+    <a
+      href={GITHUB_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "inline-flex h-7 items-center gap-1.5 px-0 font-mono text-xs uppercase tracking-[0.08em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-xs",
+        tone === "ink"
+          ? "text-white/85 hover:text-white focus-visible:ring-white/80"
+          : "text-[var(--brand-ink)] hover:text-white focus-visible:ring-[var(--brand-ink)]",
+        className,
+      )}
     >
-      <a
-        href={GITHUB_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center"
-      >
-        <Star className="h-3.5 w-3.5" />
-        <span>Star on GitHub</span>
-        {!isLoading && starCount !== null && (
-          <span className="ml-0.5 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-2xs font-medium">
-            {formatCount(starCount)}
-          </span>
-        )}
-      </a>
-    </Button>
+      <Star className="h-3.5 w-3.5" />
+      <span>Star on GitHub</span>
+      {!isLoading && starCount !== null && (
+        <span
+          className={cn(
+            "ml-0.5 text-2xs font-medium",
+            tone === "ink" ? "text-white/70" : "text-[var(--brand-ink)]/78",
+            countClassName,
+          )}
+        >
+          {formatCount(starCount)}
+        </span>
+      )}
+    </a>
   );
 }
 

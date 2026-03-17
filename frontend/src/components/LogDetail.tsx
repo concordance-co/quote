@@ -54,6 +54,8 @@ import {
   RawView,
   LogDetailSkeleton,
 } from "@/components/LogDetail/index";
+import { CardWithHeader } from "@/components/design-system/CardWithHeader";
+import { DsPanel } from "@/components/design-system/Panel";
 
 const VALID_TABS = [
   "trace",
@@ -80,9 +82,9 @@ const STAR_COLORS: Record<StarLabel, { active: string; inactive: string }> = {
       "bg-transparent text-muted-foreground border-muted-foreground/30 hover:border-emerald-500/50 hover:text-emerald-500",
   },
   B: {
-    active: "bg-blue-500 text-blue-950 border-blue-400",
+    active: "bg-primary text-primary-foreground border-primary/80",
     inactive:
-      "bg-transparent text-muted-foreground border-muted-foreground/30 hover:border-blue-500/50 hover:text-blue-500",
+      "bg-transparent text-muted-foreground border-muted-foreground/30 hover:border-primary/50 hover:text-primary",
   },
 };
 
@@ -405,7 +407,7 @@ export default function LogDetail({
     return (
       <div className="space-y-3">
         {!isPublicView && !hideBackButton && <BackButton onClick={onBack} />}
-        <div className="panel">
+        <DsPanel>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <AlertTriangle className="h-5 w-5 text-destructive mb-2" />
             <p className="text-sm font-medium mb-1">Failed to load request</p>
@@ -418,7 +420,7 @@ export default function LogDetail({
               </Link>
             </Button>
           </div>
-        </div>
+        </DsPanel>
       </div>
     );
   }
@@ -438,10 +440,10 @@ export default function LogDetail({
     <Tabs
       value={activeTab}
       onValueChange={setActiveTab}
-      className="h-full flex flex-col gap-3"
+      className="log-detail-page h-full flex flex-col gap-3"
     >
       {/* Compact Header */}
-      <div className="flex items-center justify-between gap-4 shrink-0">
+      <div className="log-detail-topbar flex items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">
           {isPublicView ? (
             <div className="flex items-center gap-2">
@@ -464,44 +466,46 @@ export default function LogDetail({
           ) : null}
         </div>
         {/* Tab Navigation - icons only on small screens */}
-        <TabsList className="h-8 p-0.5 bg-muted/50">
-          <TabsTrigger value="trace" className="h-7 text-xs gap-1.5 px-2">
-            <GitBranch className="h-3 w-3" />
-            <span className="hidden min-[600px]:inline">Trace</span>
-          </TabsTrigger>
-          <TabsTrigger value="tokens" className="h-7 text-xs gap-1.5 px-2">
-            <Code className="h-3 w-3" />
-            <span className="hidden min-[600px]:inline">Tokens</span>
-          </TabsTrigger>
-          <TabsTrigger value="metrics" className="h-7 text-xs gap-1.5 px-2">
-            <BarChart3 className="h-3 w-3" />
-            <span className="hidden min-[600px]:inline">Metrics</span>
-          </TabsTrigger>
-          <TabsTrigger value="actions" className="h-7 text-xs gap-1.5 px-2">
-            <Zap className="h-3 w-3" />
-            <span className="hidden min-[600px]:inline">Actions</span>
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="h-7 text-xs gap-1.5 px-2">
-            <MessageSquareText className="h-3 w-3" />
-            <span className="hidden min-[600px]:inline">Logs</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="discussions"
-            className="h-7 text-xs gap-1.5 px-2 relative"
-          >
-            <MessagesSquare className="h-3 w-3" />
-            <span className="hidden min-[600px]:inline">Discussion</span>
-            {unreadDiscussionCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-2xs font-medium text-white">
-                {unreadDiscussionCount}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="raw" className="h-7 text-xs gap-1.5 px-2">
-            <FileText className="h-3 w-3" />
-            <span className="hidden min-[600px]:inline">Raw</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-thin max-w-full">
+          <TabsList className="h-8 p-0.5 bg-muted/50 w-max">
+            <TabsTrigger value="trace" className="h-7 text-xs gap-1.5 px-2">
+              <GitBranch className="h-3 w-3 shrink-0" />
+              <span>Trace</span>
+            </TabsTrigger>
+            <TabsTrigger value="tokens" className="h-7 text-xs gap-1.5 px-2">
+              <Code className="h-3 w-3 shrink-0" />
+              <span>Tokens</span>
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="h-7 text-xs gap-1.5 px-2">
+              <BarChart3 className="h-3 w-3 shrink-0" />
+              <span>Metrics</span>
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="h-7 text-xs gap-1.5 px-2">
+              <Zap className="h-3 w-3 shrink-0" />
+              <span>Actions</span>
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="h-7 text-xs gap-1.5 px-2">
+              <MessageSquareText className="h-3 w-3 shrink-0" />
+              <span>Logs</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="discussions"
+              className="h-7 text-xs gap-1.5 px-2 relative"
+            >
+              <MessagesSquare className="h-3 w-3 shrink-0" />
+              <span>Discussion</span>
+              {unreadDiscussionCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-2xs font-medium text-primary-foreground">
+                  {unreadDiscussionCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="raw" className="h-7 text-xs gap-1.5 px-2">
+              <FileText className="h-3 w-3 shrink-0" />
+              <span>Raw</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <div className="flex items-center gap-2">
           {/* Share Button - only show when not in read-only mode */}
           {!readOnly && (
@@ -599,7 +603,7 @@ export default function LogDetail({
       {/* Main Content Area - responsive layout */}
       <div
         className={cn(
-          "flex-1 min-h-0 flex flex-col gap-3",
+          "log-detail-content flex-1 min-h-0 min-w-0 flex flex-col gap-3",
           !hideSidebar && "min-[1000px]:flex-row-reverse",
         )}
       >
@@ -607,19 +611,12 @@ export default function LogDetail({
         {!hideSidebar && (
           <div className="shrink-0 min-[1000px]:w-64 flex flex-col gap-3">
             {/* Request ID & Stats */}
-            <div className="panel">
-              {/* Request ID */}
-              <div className="px-3 py-2 border-b border-border/50">
-                <div className="flex flex-row items-center justify-between">
-                  <div className="text-2xs text-muted-foreground mb-1">
-                    Request ID
-                  </div>
-                  <CopyButton text={log.request_id} label="Copy ID" />
-                </div>
-                <div className="text-2xs font-mono break-all">
-                  {log.request_id}
-                </div>
-              </div>
+            <CardWithHeader
+              title="Request Overview"
+              subtitle={<span className="font-mono break-all">{log.request_id}</span>}
+              actions={<CopyButton text={log.request_id} label="Copy ID" />}
+              contentClassName="p-0"
+            >
               {/* Inline Stats */}
               <div className="px-3 py-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs min-[1000px]:flex-col min-[1000px]:items-start min-[1000px]:gap-3">
                 <StatItem label="Steps" value={stepsCount} />
@@ -642,12 +639,12 @@ export default function LogDetail({
                   readOnly={readOnly}
                 />
               </div>
-            </div>
+            </CardWithHeader>
           </div>
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 min-w-0 flex flex-col min-h-0">
           <TabsContent value="trace" className="mt-0 flex-1 min-h-0">
             <TraceTree
               log={log}

@@ -2,6 +2,12 @@ import { useState, useCallback } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import {
+  DsPanel,
+  DsPanelContent,
+  DsPanelHeader,
+  DsPanelTitle,
+} from "@/components/design-system/Panel";
 import { CopyButton } from "./CopyButton";
 import type { LogResponse } from "@/types/api";
 
@@ -11,19 +17,19 @@ interface RawViewProps {
 
 export function RawView({ log }: RawViewProps) {
   return (
-    <div className="panel h-full overflow-auto">
-      <div className="panel-header">
-        <span className="panel-title">Raw JSON</span>
+    <DsPanel className="h-full overflow-auto">
+      <DsPanelHeader>
+        <DsPanelTitle>Raw JSON</DsPanelTitle>
         <CopyButton text={JSON.stringify(log, null, 2)} label="Copy JSON" />
-      </div>
-      <div className="panel-content p-0">
+      </DsPanelHeader>
+      <DsPanelContent className="p-0">
         <ScrollArea>
           <div className="p-3 bg-black/30 text-2xs font-mono">
             <JsonNode value={log} defaultExpanded />
           </div>
         </ScrollArea>
-      </div>
-    </div>
+      </DsPanelContent>
+    </DsPanel>
   );
 }
 

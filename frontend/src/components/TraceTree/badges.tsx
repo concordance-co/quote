@@ -7,22 +7,22 @@ export const EventBadge = memo(function EventBadge({ type }: { type: string }) {
   const config: Record<string, BadgeStyle> = {
     Prefilled: {
       bg: "bg-blue-500/20",
-      text: "text-blue-300",
+      text: "text-blue-800",
       border: "border-blue-500/30",
     },
     ForwardPass: {
       bg: "bg-emerald-500/20",
-      text: "text-emerald-300",
+      text: "text-emerald-800",
       border: "border-emerald-500/30",
     },
     Sampled: {
       bg: "bg-purple-500/20",
-      text: "text-purple-300",
+      text: "text-purple-800",
       border: "border-purple-500/30",
     },
     Added: {
       bg: "bg-pink-500/20",
-      text: "text-pink-300",
+      text: "text-pink-800",
       border: "border-pink-500/30",
     },
   };
@@ -56,42 +56,42 @@ export const ActionBadge = memo(function ActionBadge({
   const config: Record<string, BadgeStyle> = {
     ForceTokens: {
       bg: "bg-pink-500/20",
-      text: "text-pink-300",
+      text: "text-pink-800",
       border: "border-pink-500/30",
     },
     ForceOutput: {
       bg: "bg-rose-500/20",
-      text: "text-rose-300",
+      text: "text-rose-800",
       border: "border-rose-500/30",
     },
     Backtrack: {
       bg: "bg-orange-500/20",
-      text: "text-orange-300",
+      text: "text-orange-800",
       border: "border-orange-500/30",
     },
     AdjustedLogits: {
       bg: "bg-cyan-500/20",
-      text: "text-cyan-300",
+      text: "text-cyan-800",
       border: "border-cyan-500/30",
     },
     AdjustedPrefill: {
       bg: "bg-teal-500/20",
-      text: "text-teal-300",
+      text: "text-teal-800",
       border: "border-teal-500/30",
     },
     ToolCalls: {
       bg: "bg-indigo-500/20",
-      text: "text-indigo-300",
+      text: "text-indigo-800",
       border: "border-indigo-500/30",
     },
     EmitError: {
       bg: "bg-red-500/20",
-      text: "text-red-300",
+      text: "text-red-800",
       border: "border-red-500/30",
     },
     Noop: {
       bg: "bg-slate-500/20",
-      text: "text-slate-400",
+      text: "text-slate-700",
       border: "border-slate-500/30",
     },
   };
@@ -123,10 +123,10 @@ export const LogLevelBadge = memo(function LogLevelBadge({
   level: string;
 }) {
   const config: Record<string, { bg: string; text: string }> = {
-    DEBUG: { bg: "bg-slate-500/20", text: "text-slate-400" },
-    INFO: { bg: "bg-blue-500/20", text: "text-blue-400" },
-    WARNING: { bg: "bg-yellow-500/20", text: "text-yellow-400" },
-    ERROR: { bg: "bg-red-500/20", text: "text-red-400" },
+    DEBUG: { bg: "bg-slate-500/20", text: "text-slate-700" },
+    INFO: { bg: "bg-blue-500/20", text: "text-blue-800" },
+    WARNING: { bg: "bg-yellow-500/20", text: "text-yellow-800" },
+    ERROR: { bg: "bg-red-500/20", text: "text-red-800" },
   };
 
   const style = config[level] || {

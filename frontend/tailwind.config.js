@@ -67,20 +67,9 @@ export default {
         1.5: "0.375rem",
       },
       fontFamily: {
-        sans: [
-          "Inter",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "system-ui",
-          "sans-serif",
-        ],
-        mono: [
-          "JetBrains Mono",
-          "SF Mono",
-          "Fira Code",
-          "Consolas",
-          "monospace",
-        ],
+        display: ["var(--font-display)", "sans-serif"],
+        sans: ["var(--font-sans)", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
       },
       keyframes: {
         "accordion-down": {
