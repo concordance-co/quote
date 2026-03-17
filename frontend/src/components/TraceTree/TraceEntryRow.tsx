@@ -107,7 +107,7 @@ export const TraceEntryRow = memo(
           {/* Main event card */}
           <div
             className={cn(
-              "flex-1 relative border-y border-r transition-all duration-150 cursor-pointer group",
+              "trace-event-card flex-1 relative border-y border-r transition-all duration-150 cursor-pointer group",
               entry.isFirstInStep && "rounded-tr border-t",
               entry.isLastInStep && "rounded-br border-b",
               !entry.isFirstInStep && "border-t-0",
@@ -153,7 +153,7 @@ export const TraceEntryRow = memo(
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <EventBadge type={event.event_type} />
                   {event.event_type === "Added" && event.forced && (
-                    <span className="px-1 py-0 rounded text-2xs font-medium bg-pink-500/20 text-pink-300">
+                    <span className="px-1 py-0 rounded text-2xs font-medium bg-pink-500/18 text-pink-800">
                       FORCED
                     </span>
                   )}
@@ -207,9 +207,9 @@ export const TraceEntryRow = memo(
             </div>
 
             {/* Expanded details panel */}
-            {showDetails && (
+              {showDetails && (
               <div className="px-1.5 pb-1.5 pt-0">
-                <div className="ml-8 bg-black/20 rounded p-2 text-2xs border border-border/30">
+                <div className="trace-event-details ml-8 bg-white/65 rounded p-2 text-2xs border border-border/35">
                   <EventDetails event={event} />
                 </div>
               </div>
@@ -236,7 +236,7 @@ export const TraceEntryRow = memo(
 
         {/* Children (mod calls and actions) */}
         {expanded && hasChildren && (
-          <div className="ml-3 pl-2 border-l border-border/30 space-y-0.5 py-0.5">
+          <div className="trace-children ml-3 pl-2 border-l border-border/30 space-y-0.5 py-0.5">
             {/* Mod calls */}
             {modCalls.map((mc) => (
               <ModCallCard

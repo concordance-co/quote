@@ -45,6 +45,15 @@ import {
   getConfigFromUrl,
   type ShareablePlaygroundConfig,
 } from "@/lib/shareUtils";
+import {
+  DsPanel,
+  DsPanelHeader,
+  DsPanelTitle,
+} from "@/components/design-system/Panel";
+import {
+  formFieldInputClassName,
+  formFieldTextareaClassName,
+} from "@/components/design-system/FormField";
 
 // Static configuration - no need to fetch from backend
 const MODELS = [
@@ -381,7 +390,7 @@ function highlightPython(code: string): React.ReactNode[] {
       const commentMatch = remaining.match(/^(#.*)$/);
       if (commentMatch) {
         elements.push(
-          <span key={key++} className="text-emerald-600">
+          <span key={key++} className="text-[var(--brand-blue)]">
             {commentMatch[1]}
           </span>,
         );
@@ -1139,18 +1148,30 @@ export default function Playground() {
     "running_inference",
     "fetching_results",
   ].includes(state.step);
+  const compactInputClassName = cn(
+    formFieldInputClassName,
+    "px-2 py-1.5 text-xs font-mono",
+  );
+  const compactTextareaClassName = cn(
+    formFieldTextareaClassName,
+    "min-h-0 resize-none px-2 py-1.5 text-xs font-mono",
+  );
+  const compactTextareaAutoClassName = cn(
+    compactTextareaClassName,
+    "overflow-y-auto",
+  );
 
   return (
-    <div className="h-full flex flex-col bg-background px-2 sm:px-4">
+    <div className="playground-page h-full flex flex-col bg-background px-2 pt-4 pb-4 sm:px-4">
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between mb-3 sm:mb-4 px-1 max-w-5xl mx-auto w-full">
+      <div className="playground-page-header shrink-0 flex items-center justify-between mb-3 sm:mb-4 px-1 max-w-5xl mx-auto w-full">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <h1 className="text-sm sm:text-lg font-semibold font-mono text-foreground tracking-wide">
               <span className="xs:inline">Token Injection Lab</span>
             </h1>
           </div>
-          <span className="hidden sm:inline px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/50 rounded-sm">
+          <span className="hidden sm:inline px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-[color:color-mix(in_srgb,var(--brand-blue)_12%,transparent)] text-[var(--brand-blue)] border border-[color:color-mix(in_srgb,var(--brand-blue)_48%,transparent)] rounded-sm">
             Beta
           </span>
         </div>
@@ -1170,14 +1191,14 @@ export default function Playground() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        <div className="flex flex-col lg:flex-row gap-4 w-full max-w-5xl mx-auto px-2 sm:px-4">
+      <div className="playground-scroll-region flex-1 min-h-0 overflow-auto">
+        <div className="playground-main-grid flex flex-col lg:flex-row gap-4 w-full max-w-5xl mx-auto px-2 sm:px-4">
           {/* Sidebar - Left Column on desktop, top section on mobile */}
-          <div className="shrink-0 max-w-3xl w-full lg:w-64 lg:self-start bg-card border border-border rounded relative flex flex-col overflow-hidden">
+          <div className="playground-side-rail shrink-0 max-w-3xl w-full lg:w-64 lg:self-start bg-card border border-border rounded relative flex flex-col overflow-hidden">
             {/* API Key Section - Desktop only */}
             {playgroundApiKey && (
-              <div className="hidden lg:block border-b border-border shrink-0">
-                <div className="flex items-center justify-between px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <div className="playground-api-section hidden lg:block border-b border-border shrink-0">
+                <div className="playground-side-header flex items-center justify-between px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                   <span className="flex items-center gap-2">
                     <Key className="h-3 w-3" />
                     API Key
@@ -1192,14 +1213,14 @@ export default function Playground() {
                     title="Copy API key"
                   >
                     {apiKeyCopied ? (
-                      <Check className="h-3 w-3 text-emerald-500" />
+                      <Check className="h-3 w-3 text-[var(--brand-blue)]" />
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
                   </button>
                 </div>
                 <div className="p-3">
-                  <code className="text-[10px] block overflow-x-auto whitespace-nowrap font-mono bg-muted px-2 py-1 rounded">
+                  <code className="playground-api-code text-[10px] block overflow-x-auto whitespace-nowrap font-mono bg-muted px-2 py-1 rounded">
                     {playgroundApiKey.slice(0, 20)}...
                   </code>
                   <p className="text-[10px] mt-2 text-muted-foreground">
@@ -1213,7 +1234,7 @@ export default function Playground() {
             <div className="flex-1 flex flex-col min-h-0">
               <button
                 onClick={() => setHistoryOpen(!historyOpen)}
-                className="flex items-center justify-between w-full px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors border-b border-border shrink-0"
+                className="playground-history-toggle flex items-center justify-between w-full px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors border-b border-border shrink-0"
               >
                 <span className="flex items-center gap-2">
                   <History className="h-3 w-3" />
@@ -1233,7 +1254,7 @@ export default function Playground() {
               </button>
 
               {historyOpen && (
-                <div className="max-h-64 lg:max-h-96 overflow-y-auto bg-card">
+                <div className="playground-history-list max-h-64 lg:max-h-96 overflow-y-auto bg-card">
                   {historyLoading ? (
                     <div className="flex items-center justify-center p-4">
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -1275,12 +1296,12 @@ export default function Playground() {
                             step: "complete",
                           }));
                         }}
-                        className="w-full text-left px-3 py-2 border-b border-border hover:bg-muted/50 transition-colors"
+                        className="playground-history-item w-full text-left px-3 py-2 border-b border-border hover:bg-muted/50 transition-colors"
                       >
                         <div className="text-[10px] flex items-center gap-1 text-muted-foreground">
                           <span>{formatRelativeTime(log.created_ts)}</span>
                           <span>·</span>
-                          <span className="text-emerald-500">
+                          <span className="text-[var(--brand-blue)]">
                             {getModelShortName(log.model_id)}
                           </span>
                         </div>
@@ -1321,7 +1342,7 @@ export default function Playground() {
                   href="https://www.concordance.co/blog/token-injection-steering-llms"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-emerald-500 hover:underline"
+                  className="text-[var(--brand-blue)] hover:underline"
                 >
                   here
                 </a>
@@ -1330,13 +1351,13 @@ export default function Playground() {
             )}
 
             {/* Configuration Row - Model + Max Tokens + Temperature */}
-            <div className="panel">
-              <div className="panel-header">
+            <DsPanel>
+              <DsPanelHeader>
                 <span className="flex items-center gap-2">
                   <Settings className="h-3 w-3" />
-                  <span className="panel-title">Configuration</span>
+                  <DsPanelTitle>Configuration</DsPanelTitle>
                 </span>
-              </div>
+              </DsPanelHeader>
               <div className="p-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -1347,7 +1368,7 @@ export default function Playground() {
                       value={selectedModel}
                       onChange={(e) => setSelectedModel(e.target.value)}
                       disabled={isRunning}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     >
                       {MODELS.map((model) => (
                         <option key={model.id} value={model.id}>
@@ -1382,7 +1403,7 @@ export default function Playground() {
                       disabled={isRunning}
                       min={1}
                       max={4096}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                   <div>
@@ -1404,18 +1425,18 @@ export default function Playground() {
                       min={0}
                       max={2}
                       step={0.1}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                 </div>
               </div>
-            </div>
+            </DsPanel>
 
             {/* Prompts */}
-            <div className="panel">
-              <div className="panel-header">
-                <span className="panel-title">Input</span>
-              </div>
+            <DsPanel>
+              <DsPanelHeader>
+                <DsPanelTitle>Input</DsPanelTitle>
+              </DsPanelHeader>
               <div className="p-3 space-y-3">
                 <div>
                   <label className="block mb-1.5 text-[10px] font-mono font-medium uppercase tracking-wide text-muted-foreground">
@@ -1426,7 +1447,7 @@ export default function Playground() {
                     onChange={(e) => setSystemPrompt(e.target.value)}
                     disabled={isRunning}
                     rows={2}
-                    className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                    className={compactTextareaClassName}
                     placeholder="You are a helpful assistant..."
                   />
                 </div>
@@ -1439,21 +1460,20 @@ export default function Playground() {
                     onChange={(e) => setUserPrompt(e.target.value)}
                     disabled={isRunning}
                     rows={3}
-                    className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                    className={compactTextareaClassName}
                     placeholder="What would you like to ask?"
                   />
                 </div>
               </div>
-            </div>
+            </DsPanel>
 
             {/* Token Injection - HERO ELEMENT */}
-            <div className="panel border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
-              <div className="panel-header flex items-center justify-between border-b-emerald-500/30">
-                <span className="flex items-center gap-2 text-emerald-500">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span className="panel-title text-emerald-500">
+            <DsPanel className="border-[color:color-mix(in_srgb,var(--brand-blue)_48%,transparent)] shadow-[0_0_10px_rgba(74,111,224,0.14)]">
+              <DsPanelHeader className="flex items-center justify-between border-b-[color:color-mix(in_srgb,var(--brand-blue)_32%,transparent)]">
+                <span className="flex items-center gap-2 text-[var(--brand-blue)]">
+                  <DsPanelTitle className="text-[var(--brand-blue)]">
                     Token Injection Module
-                  </span>
+                  </DsPanelTitle>
                 </span>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1464,7 +1484,7 @@ export default function Playground() {
                     disabled={isRunning}
                     className={cn(
                       "relative w-9 h-5 rounded-full transition-colors",
-                      enableMod ? "bg-emerald-500" : "bg-muted",
+                      enableMod ? "bg-[var(--brand-blue)]" : "bg-muted",
                     )}
                   >
                     <span
@@ -1475,7 +1495,7 @@ export default function Playground() {
                     />
                   </button>
                 </label>
-              </div>
+              </DsPanelHeader>
               <div className={cn("p-3 space-y-3", !enableMod && "opacity-50")}>
                 {/* Injection String - greyed out for phrase replace positions */}
                 <div
@@ -1498,8 +1518,8 @@ export default function Playground() {
                       disabled={isRunning || !enableMod}
                       rows={2}
                       className={cn(
-                        "w-full px-2 py-1.5 text-xs font-mono bg-background border rounded focus:outline-none focus:ring-1 focus:ring-primary resize-none overflow-y-auto",
-                        enableMod ? "border-emerald-500/50" : "border-border",
+                        compactTextareaAutoClassName,
+                        enableMod ? "border-[color:color-mix(in_srgb,var(--brand-blue)_48%,transparent)]" : "border-border",
                       )}
                       style={{ minHeight: "3.5rem", maxHeight: "200px" }}
                       placeholder="Text to inject..."
@@ -1518,7 +1538,7 @@ export default function Playground() {
                       setInjectionPosition(e.target.value as InjectionPosition)
                     }
                     disabled={isRunning || !enableMod}
-                    className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                    className={compactInputClassName}
                   >
                     {POSITIONS.filter((pos) => {
                       const isQwenModel = selectedModel
@@ -1557,7 +1577,7 @@ export default function Playground() {
                       }
                       disabled={isRunning || !enableMod}
                       min={1}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                 )}
@@ -1580,7 +1600,7 @@ export default function Playground() {
                       }
                       disabled={isRunning || !enableMod}
                       min={1}
-                      className="w-full px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      className={compactInputClassName}
                     />
                   </div>
                 )}
@@ -1605,7 +1625,7 @@ export default function Playground() {
                             setDetectPhrases(newPhrases);
                           }}
                           disabled={isRunning || !enableMod}
-                          className="flex-1 px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                          className={cn(compactInputClassName, "flex-1")}
                           placeholder={i === 0 ? "e.g., Cats" : ""}
                         />
                         <span className="text-muted-foreground text-xs">→</span>
@@ -1618,7 +1638,7 @@ export default function Playground() {
                             setReplacementPhrases(newPhrases);
                           }}
                           disabled={isRunning || !enableMod}
-                          className="flex-1 px-2 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                          className={cn(compactInputClassName, "flex-1")}
                           placeholder={i === 0 ? "e.g., Lizards" : ""}
                         />
                       </div>
@@ -1626,13 +1646,13 @@ export default function Playground() {
                   </div>
                 )}
               </div>
-            </div>
+            </DsPanel>
 
             {/* Run Button & Status */}
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Button
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="playground-run-button flex-1 py-3"
                   onClick={handleRun}
                   disabled={isRunning || !userPrompt.trim()}
                 >
@@ -1680,14 +1700,14 @@ export default function Playground() {
                       <div
                         className={cn(
                           "flex items-center gap-1",
-                          state.modCode && "text-emerald-500",
+                          state.modCode && "text-[var(--brand-blue)]",
                         )}
                       >
                         <span
                           className={cn(
                             "w-2 h-2 rounded-full",
                             state.modCode
-                              ? "bg-emerald-500"
+                              ? "bg-[var(--brand-blue)]"
                               : state.step === "generating_mod"
                                 ? "bg-yellow-500 animate-pulse"
                                 : "bg-muted",
@@ -1702,7 +1722,7 @@ export default function Playground() {
                           (state.step === "running_inference" ||
                             state.step === "fetching_results" ||
                             state.step === "complete") &&
-                            "text-emerald-500",
+                            "text-[var(--brand-blue)]",
                           (state.step === "uploading_mod" ||
                             state.step === "spinning_up_resources") &&
                             "text-yellow-500",
@@ -1714,7 +1734,7 @@ export default function Playground() {
                             state.step === "running_inference" ||
                               state.step === "fetching_results" ||
                               state.step === "complete"
-                              ? "bg-emerald-500"
+                              ? "bg-[var(--brand-blue)]"
                               : state.step === "uploading_mod" ||
                                   state.step === "spinning_up_resources"
                                 ? "bg-yellow-500 animate-pulse"
@@ -1729,14 +1749,14 @@ export default function Playground() {
                   <div
                     className={cn(
                       "flex items-center gap-1",
-                      state.inferenceResult && "text-emerald-500",
+                      state.inferenceResult && "text-[var(--brand-blue)]",
                     )}
                   >
                     <span
                       className={cn(
                         "w-2 h-2 rounded-full",
                         state.inferenceResult
-                          ? "bg-emerald-500"
+                          ? "bg-[var(--brand-blue)]"
                           : state.step === "running_inference"
                             ? "bg-yellow-500 animate-pulse"
                             : "bg-muted",
@@ -1748,14 +1768,14 @@ export default function Playground() {
                   <div
                     className={cn(
                       "flex items-center gap-1",
-                      state.step === "complete" && "text-emerald-500",
+                      state.step === "complete" && "text-[var(--brand-blue)]",
                     )}
                   >
                     <span
                       className={cn(
                         "w-2 h-2 rounded-full",
                         state.step === "complete"
-                          ? "bg-emerald-500"
+                          ? "bg-[var(--brand-blue)]"
                           : state.step === "fetching_results"
                             ? "bg-yellow-500 animate-pulse"
                             : "bg-muted",
@@ -1784,11 +1804,11 @@ export default function Playground() {
 
             {/* Generated Code Preview */}
             {state.modCode && (
-              <div className="panel">
-                <div className="panel-header flex items-center justify-between">
+              <DsPanel>
+                <DsPanelHeader className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Code className="h-3 w-3" />
-                    <span className="panel-title">Generated Mod Code</span>
+                    <DsPanelTitle>Generated Mod Code</DsPanelTitle>
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -1802,7 +1822,7 @@ export default function Playground() {
                       title="Copy code"
                     >
                       {codeCopied ? (
-                        <Check className="h-3 w-3 text-emerald-500" />
+                        <Check className="h-3 w-3 text-[var(--brand-blue)]" />
                       ) : (
                         <Copy className="h-3 w-3" />
                       )}
@@ -1819,22 +1839,22 @@ export default function Playground() {
                       )}
                     </button>
                   </div>
-                </div>
+                </DsPanelHeader>
                 {showGeneratedCode && (
                   <pre className="p-4 text-[11px] overflow-x-auto max-h-96 overflow-y-auto leading-relaxed whitespace-pre font-mono bg-muted/30">
                     {highlightPython(state.modCode)}
                   </pre>
                 )}
-              </div>
+              </DsPanel>
             )}
 
             {/* Results - Token Sequence */}
             {state.logData && (
-              <div className="panel mt-4">
-                <div className="panel-header flex items-center justify-between">
+              <DsPanel className="mt-4">
+                <DsPanelHeader className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Code className="h-3 w-3" />
-                    <span className="panel-title">Token Sequence</span>
+                    <DsPanelTitle>Token Sequence</DsPanelTitle>
                   </span>
                   <Button
                     variant="ghost"
@@ -1847,7 +1867,7 @@ export default function Playground() {
                       <ExternalLink className="h-3 w-3" />
                     </Link>
                   </Button>
-                </div>
+                </DsPanelHeader>
                 <div className="p-0">
                   <TokensView
                     log={state.logData}
@@ -1857,17 +1877,17 @@ export default function Playground() {
                     noScrollConstraints
                   />
                 </div>
-              </div>
+              </DsPanel>
             )}
 
             {/* Feature Timeline Panel */}
             {state.logData && selectedModel === "llama-3.1-8b" && (
-              <div className="panel mt-4">
-                <div className="panel-header flex items-center justify-between">
+              <DsPanel className="mt-4">
+                <DsPanelHeader className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <Sparkles className="h-3 w-3 text-emerald-500" />
-                    <span className="panel-title">SAE Feature Analysis</span>
-                    <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/50 rounded">
+                    <Sparkles className="h-3 w-3 text-[var(--brand-blue)]" />
+                    <DsPanelTitle>SAE Feature Analysis</DsPanelTitle>
+                    <span className="text-[9px] px-1.5 py-0.5 bg-[color:color-mix(in_srgb,var(--brand-blue)_12%,transparent)] text-[var(--brand-blue)] border border-[color:color-mix(in_srgb,var(--brand-blue)_48%,transparent)] rounded">
                       Experimental
                     </span>
                   </span>
@@ -1892,7 +1912,7 @@ export default function Playground() {
                       )}
                     </Button>
                   )}
-                </div>
+                </DsPanelHeader>
                 <div className="p-3">
                   {state.featureTimeline ? (
                     <>
@@ -1929,7 +1949,7 @@ export default function Playground() {
                                         href={`https://www.neuronpedia.org/llama3.1-8b/16-llamascope-res-32k/${feat.id}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="font-mono text-emerald-600 hover:text-emerald-400 hover:underline shrink-0"
+                                        className="font-mono text-[var(--brand-blue)] hover:text-[var(--brand-blue)] hover:underline shrink-0"
                                       >
                                         #{feat.id.toLocaleString()}
                                       </a>
@@ -1975,7 +1995,7 @@ export default function Playground() {
                     <div className="text-xs text-muted-foreground text-center py-4">
                       {state.extractingFeatures ? (
                         <div className="flex flex-col items-center gap-2">
-                          <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
+                          <Loader2 className="h-5 w-5 animate-spin text-[var(--brand-blue)]" />
                           <span>Running SAE analysis on {state.logData.final_tokens?.length} tokens...</span>
                           <span className="text-[10px]">This may require loading the model.</span>
                         </div>
@@ -1990,7 +2010,7 @@ export default function Playground() {
                     </div>
                   )}
                 </div>
-              </div>
+              </DsPanel>
             )}
           </div>
         </div>

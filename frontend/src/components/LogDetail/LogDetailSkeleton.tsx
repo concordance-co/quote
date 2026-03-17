@@ -1,4 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DsPanel,
+  DsPanelContent,
+  DsPanelHeader,
+} from "@/components/design-system/Panel";
 
 export function LogDetailSkeleton() {
   return (
@@ -17,22 +22,22 @@ export function LogDetailSkeleton() {
         </div>
       </div>
 
-      <div className="panel">
+      <DsPanel>
         <div className="px-3 py-2">
           <Skeleton className="h-4 w-full max-w-md" />
         </div>
-      </div>
+      </DsPanel>
 
       <div>
         <Skeleton className="h-8 w-80 mb-2" />
-        <div className="panel">
-          <div className="panel-header">
+        <DsPanel>
+          <DsPanelHeader>
             <Skeleton className="h-4 w-32" />
-          </div>
-          <div className="panel-content">
+          </DsPanelHeader>
+          <DsPanelContent>
             <Skeleton className="h-[300px] w-full" />
-          </div>
-        </div>
+          </DsPanelContent>
+        </DsPanel>
       </div>
     </div>
   );

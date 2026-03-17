@@ -13,10 +13,10 @@ export const ActionCard = memo(function ActionCard({
   associatedEvent,
 }: ActionCardProps) {
   return (
-    <div className="rounded border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 transition-colors">
+    <div className="rounded border border-cyan-500/28 bg-cyan-500/10 hover:bg-cyan-500/16 transition-colors">
       <div className="flex items-center gap-1.5 px-1.5 py-1 group">
-        <div className="w-5 h-5 rounded bg-cyan-500/20 flex items-center justify-center">
-          <ArrowLeftFromLine className="h-2.5 w-2.5 text-cyan-400" />
+        <div className="w-5 h-5 rounded bg-cyan-500/24 flex items-center justify-center">
+          <ArrowLeftFromLine className="h-2.5 w-2.5 text-cyan-800" />
         </div>
 
         <ActionBadge type={action.action_type} />
@@ -41,7 +41,7 @@ export const ActionCard = memo(function ActionCard({
       {/* Action details */}
       {showDetails && (
         <div className="px-1.5 pb-1.5">
-          <div className="bg-black/20 rounded p-1.5 text-2xs border border-border/30">
+          <div className="bg-white/65 rounded p-1.5 text-2xs border border-border/35">
             <pre className="whitespace-pre-wrap break-all font-mono">
               {JSON.stringify(action.payload, null, 2)}
             </pre>

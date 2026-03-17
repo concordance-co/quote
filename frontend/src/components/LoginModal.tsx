@@ -8,6 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  FormField,
+  formFieldInputClassName,
+} from "@/components/design-system/FormField";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { Key, Loader2, AlertCircle, LogOut, User } from "lucide-react";
 
@@ -47,7 +52,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-white/20 bg-[rgba(16,20,28,0.92)] backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
@@ -61,33 +66,26 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             {error && (
-              <div className="flex items-center gap-2 p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-md border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 p-3 text-sm text-red-200 bg-red-900/35 rounded-md border border-red-700/60">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>
             )}
-            <div className="space-y-2">
-              <label
-                htmlFor="apiKey"
-                className="text-sm font-medium text-foreground"
-              >
-                API Key
-              </label>
+            <FormField
+              label="API Key"
+              helperText="Use the same API key you use for inference requests, or an admin key provided by your administrator."
+            >
               <input
                 id="apiKey"
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your API key..."
-                className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
+                className={formFieldInputClassName}
                 disabled={isLoading}
                 autoFocus
               />
-              <p className="text-xs text-muted-foreground">
-                Use the same API key you use for inference requests, or an admin
-                key provided by your administrator.
-              </p>
-            </div>
+            </FormField>
           </div>
           <DialogFooter>
             <Button
@@ -119,24 +117,37 @@ interface UserMenuProps {
   onLogout: () => void;
   userName: string;
   isAdmin: boolean;
+  tone?: "paper" | "ink";
 }
 
-export function UserMenu({ onLogout, userName, isAdmin }: UserMenuProps) {
+export function UserMenu({
+  onLogout,
+  userName,
+  isAdmin,
+  tone = "paper",
+}: UserMenuProps) {
+  const isInk = tone === "ink";
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-xs">
+    <div
+      className={cn(
+        "flex items-center gap-2",
+        isInk ? "text-white" : "text-[var(--brand-ink)]",
+      )}
+    >
+      <div className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.08em]">
         <User className="h-3 w-3" />
-        <span className="font-medium">{userName}</span>
-        {isAdmin && (
-          <span className="px-1 py-0.5 rounded text-2xs bg-primary/10 text-primary">
-            Admin
-          </span>
-        )}
+        <span className="font-medium normal-case tracking-normal">{userName}</span>
+        {isAdmin && <span className="text-[10px] opacity-70 uppercase">Admin</span>}
       </div>
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 text-xs px-2"
+        className={cn(
+          "h-7 px-0 font-mono text-xs uppercase tracking-[0.08em]",
+          isInk
+            ? "text-white/85 hover:text-white"
+            : "text-[var(--brand-ink)] hover:text-[var(--brand-ink)] hover:bg-black/10",
+        )}
         onClick={onLogout}
       >
         <LogOut className="h-3 w-3 mr-1" />

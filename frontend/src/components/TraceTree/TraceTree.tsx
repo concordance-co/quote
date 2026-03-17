@@ -10,6 +10,8 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Activity, FileText, Circle } from "lucide-react";
 import { TraceEntryRow } from "./TraceEntryRow";
 import type { TraceTreeProps, TraceEntry } from "./types";
+import { CardWithHeader } from "@/components/design-system/CardWithHeader";
+import { DsPanel } from "@/components/design-system/Panel";
 
 export default function TraceTree({
   log,
@@ -243,7 +245,7 @@ export default function TraceTree({
   // Empty state
   if (!log.events || log.events.length === 0) {
     return (
-      <div className="panel">
+      <DsPanel>
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
             <FileText className="h-6 w-6 text-muted-foreground" />
@@ -253,7 +255,7 @@ export default function TraceTree({
             No events recorded for this request
           </p>
         </div>
-      </div>
+      </DsPanel>
     );
   }
 
@@ -274,25 +276,26 @@ export default function TraceTree({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div className="panel overflow-hidden h-full flex flex-col">
-      {/* Header */}
-      <div className="panel-header flex items-center justify-between border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" />
-            <span className="panel-title">Execution Trace</span>
-          </div>
-          <div className="flex items-center gap-2 text-2xs">
-            <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-              {log.events?.length || 0} events
+    <CardWithHeader
+      title={
+        <span className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-primary" />
+          <span>Execution Trace</span>
+        </span>
+      }
+      subtitle={
+        <span className="flex items-center gap-2 text-2xs">
+          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+            {log.events?.length || 0} events
+          </span>
+          {stats.totalActions > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-cyan-500/18 text-cyan-800">
+              {stats.totalActions} actions
             </span>
-            {stats.totalActions > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-cyan-900/40 text-cyan-300">
-                {stats.totalActions} actions
-              </span>
-            )}
-          </div>
-        </div>
+          )}
+        </span>
+      }
+      actions={
         <div className="flex items-center gap-1">
           <button
             onClick={expandAll}
@@ -307,7 +310,10 @@ export default function TraceTree({
             Collapse All
           </button>
         </div>
-      </div>
+      }
+      className="h-full flex flex-col"
+      contentClassName="p-0 flex-1 min-h-0"
+    >
 
       {/* Virtualized scroll container */}
       {/* Scroll container - this is what the virtualizer scrolls */}
@@ -315,11 +321,11 @@ export default function TraceTree({
         {/* Header/Start marker - measured for scrollMargin */}
         <div ref={headerRef} className="p-2 pb-0">
           <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/30">
-            <div className="w-6 h-6 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-              <Circle className="h-2.5 w-2.5 text-emerald-400 fill-emerald-400" />
+            <div className="w-6 h-6 rounded bg-emerald-500/18 border border-emerald-500/32 flex items-center justify-center">
+              <Circle className="h-2.5 w-2.5 text-emerald-700 fill-emerald-700" />
             </div>
             <div>
-              <div className="font-medium text-emerald-400 text-xs">
+              <div className="font-medium text-emerald-800 text-xs">
                 Generation Started
               </div>
               <div className="text-2xs text-muted-foreground">
@@ -376,11 +382,11 @@ export default function TraceTree({
           {/* End marker */}
           {log.finished_ts && (
             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
-              <div className="w-6 h-6 rounded bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                <Circle className="h-2.5 w-2.5 text-blue-400 fill-blue-400" />
+              <div className="w-6 h-6 rounded bg-blue-500/18 border border-blue-500/30 flex items-center justify-center">
+                <Circle className="h-2.5 w-2.5 text-blue-700 fill-blue-700" />
               </div>
               <div>
-                <div className="font-medium text-blue-400 text-xs">
+                <div className="font-medium text-blue-800 text-xs">
                   Complete
                 </div>
                 <div className="text-2xs text-muted-foreground">
@@ -392,6 +398,6 @@ export default function TraceTree({
           )}
         </div>
       </div>
-    </div>
+    </CardWithHeader>
   );
 }

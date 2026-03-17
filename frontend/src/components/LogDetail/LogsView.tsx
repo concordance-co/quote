@@ -7,6 +7,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DsPanel,
+  DsPanelContent,
+  DsPanelHeader,
+  DsPanelTitle,
+} from "@/components/design-system/Panel";
 import { cn } from "@/lib/utils";
 import { useUsername } from "@/hooks/useUsername";
 import { createDiscussion } from "@/lib/api";
@@ -71,14 +77,14 @@ export function LogsView({
   }, [log.mod_logs]);
 
   return (
-    <div className="panel h-full overflow-auto">
-      <div className="panel-header">
-        <span className="panel-title">Mod Logs</span>
+    <DsPanel className="h-full overflow-auto">
+      <DsPanelHeader>
+        <DsPanelTitle>Mod Logs</DsPanelTitle>
         <span className="text-2xs text-muted-foreground">
           {sortedLogs.length} {sortedLogs.length === 1 ? "entry" : "entries"}
         </span>
-      </div>
-      <div className="panel-content p-0">
+      </DsPanelHeader>
+      <DsPanelContent className="p-0">
         <ScrollArea>
           {sortedLogs.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
@@ -107,8 +113,8 @@ export function LogsView({
             </div>
           )}
         </ScrollArea>
-      </div>
-    </div>
+      </DsPanelContent>
+    </DsPanel>
   );
 }
 
