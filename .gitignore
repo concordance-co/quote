@@ -16,3 +16,4 @@ target/
 .logs/
 .vercel
 .env*.local
+.worktrees/
